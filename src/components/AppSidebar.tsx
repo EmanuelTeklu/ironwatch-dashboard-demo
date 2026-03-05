@@ -23,17 +23,25 @@ import {
 } from "@/components/ui/sidebar";
 import type { ViewId } from "@/lib/types";
 
-const navItems: {
+type NavItem = {
   id: ViewId;
   label: string;
   icon: typeof LayoutDashboard;
   url: string;
-}[] = [
+};
+
+const pegasusItem: NavItem = {
+  id: "pegasus",
+  label: "Pegasus",
+  icon: Bot,
+  url: "/pegasus",
+};
+
+const operationsItems: NavItem[] = [
   { id: "sites", label: "Tonight's Board", icon: LayoutDashboard, url: "/" },
   { id: "callouts", label: "Call-Outs", icon: PhoneOff, url: "/callouts" },
   { id: "pool", label: "Guard Pool", icon: Users, url: "/guards" },
   { id: "rovers", label: "Rovers", icon: Car, url: "/rovers" },
-  { id: "pegasus", label: "Pegasus", icon: Bot, url: "/pegasus" },
 ];
 
 export function AppSidebar() {
@@ -77,14 +85,45 @@ export function AppSidebar() {
           </div>
         )}
 
-        {/* Nav */}
+        {/* Pegasus section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Pegasus
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to={pegasusItem.url}
+                    end
+                    className="relative text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                    activeClassName="bg-purple-500/15 text-purple-300 font-medium"
+                  >
+                    <pegasusItem.icon className="h-4 w-4" />
+                    {!collapsed && (
+                      <span className="flex items-center gap-2">
+                        {pegasusItem.label}
+                        <span className="rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-purple-400">
+                          AI
+                        </span>
+                      </span>
+                    )}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Operations section */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
             Operations
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {operationsItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton asChild>
                     <NavLink
