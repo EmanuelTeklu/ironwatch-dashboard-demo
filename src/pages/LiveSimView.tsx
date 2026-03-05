@@ -4,6 +4,7 @@ import type { SimLogEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Zap, Shield, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PHASES = ["grace", "eta", "review", "cascade", "filled"] as const;
 type Phase = (typeof PHASES)[number];
@@ -17,11 +18,9 @@ const LOG_COLORS: Record<SimLogEntry["type"], string> = {
   muted: "text-muted-foreground/50",
 };
 
-interface LiveSimViewProps {
-  managerName: string;
-}
-
-export default function LiveSimView({ managerName }: LiveSimViewProps) {
+export default function LiveSimView() {
+  const { user } = useAuth();
+  const managerName = user?.email?.split("@")[0] ?? "Manager";
   const [simOn, setSimOn] = useState(false);
   const [phase, setPhase] = useState<Phase | null>(null);
   const [log, setLog] = useState<SimLogEntry[]>([]);
@@ -32,21 +31,24 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
     logEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
 
-  const addLog = useCallback((msg: string, type: SimLogEntry["type"] = "info") => {
-    setLog((p) => [
-      ...p,
-      {
-        t: new Date().toLocaleTimeString("en-US", {
-          hour12: false,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-        msg,
-        type,
-      },
-    ]);
-  }, []);
+  const addLog = useCallback(
+    (msg: string, type: SimLogEntry["type"] = "info") => {
+      setLog((p) => [
+        ...p,
+        {
+          t: new Date().toLocaleTimeString("en-US", {
+            hour12: false,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+          msg,
+          type,
+        },
+      ]);
+    },
+    [],
+  );
 
   const runSim = useCallback(() => {
     setSimOn(true);
@@ -57,7 +59,10 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
     addLog("Scheduled guard: G. Terrell (Armed Officer)", "info");
     addLog("ElevenLabs agent placing confirmation call…", "ai");
     setTimeout(() => {
-      addLog('AI: "Hi George, confirming your 11PM shift at Columbia Park. Are you on your way?"', "ai");
+      addLog(
+        'AI: "Hi George, confirming your 11PM shift at Columbia Park. Are you on your way?"',
+        "ai",
+      );
       setTimeout(() => {
         addLog("No answer — call went to voicemail", "warn");
         addLog("Starting 10-minute grace window", "info");
@@ -69,10 +74,16 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
             addLog("10 min — grace period expired", "danger");
             addLog("AI agent calling G. Terrell again…", "ai");
             setTimeout(() => {
-              addLog('G. Terrell: "Can\'t make it, car won\'t start"', "danger");
+              addLog(
+                "G. Terrell: \"Can't make it, car won't start\"",
+                "danger",
+              );
               addLog("Guard confirmed OUT", "danger");
               setPhase("review");
-              addLog(`Alert sent to ${managerName} — Columbia Park (Armed) uncovered`, "warn");
+              addLog(
+                `Alert sent to ${managerName} — Columbia Park (Armed) uncovered`,
+                "warn",
+              );
             }, 2200);
           }, 2000);
         }, 2500);
@@ -94,7 +105,10 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
       setTimeout(() => {
         addLog("AI agent calling #1: B. Adams…", "ai");
         setTimeout(() => {
-          addLog('AI: "We have an open armed shift at Columbia Park. Overtime rate. Can you take it?"', "ai");
+          addLog(
+            'AI: "We have an open armed shift at Columbia Park. Overtime rate. Can you take it?"',
+            "ai",
+          );
           setTimeout(() => {
             addLog('B. Adams: "Yeah, 20 minutes out"', "success");
             addLog("Shift accepted — writing to Connecteam", "success");
@@ -121,9 +135,10 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
         {/* Intro */}
         <div className="rounded-lg border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Simulates the hardest scenario: armed site no-show on a Friday night.
-            ElevenLabs AI agent handles confirmation calls and cascade outreach.
-            The armed-eligible pool shrinks to 2 guards after filtering.
+            Simulates the hardest scenario: armed site no-show on a Friday
+            night. ElevenLabs AI agent handles confirmation calls and cascade
+            outreach. The armed-eligible pool shrinks to 2 guards after
+            filtering.
           </p>
         </div>
 
@@ -134,7 +149,9 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
             <span className="text-[10px] font-bold uppercase tracking-wider text-armed">
               ARMED
             </span>
-            <span className="text-sm font-semibold text-foreground">Columbia Park</span>
+            <span className="text-sm font-semibold text-foreground">
+              Columbia Park
+            </span>
           </div>
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>942 S Wakefield St, Arlington</p>
@@ -145,7 +162,9 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
 
         {/* Flow steps */}
         <div className="rounded-lg border border-border bg-card p-5">
-          <p className="mb-4 text-sm font-semibold text-foreground">Response Flow</p>
+          <p className="mb-4 text-sm font-semibold text-foreground">
+            Response Flow
+          </p>
           <div className="space-y-3">
             {[
               ["AI Confirm", "Voice call 15 min before shift start"],
@@ -195,8 +214,9 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-all",
                   done && "border-success bg-success/20 text-success",
-                  active && "border-primary bg-primary/20 text-primary scale-110",
-                  !done && !active && "border-border text-muted-foreground"
+                  active &&
+                    "border-primary bg-primary/20 text-primary scale-110",
+                  !done && !active && "border-border text-muted-foreground",
                 )}
               >
                 {done ? "✓" : i + 1}
@@ -204,7 +224,11 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
               <span
                 className={cn(
                   "text-[10px] font-medium uppercase tracking-wider",
-                  active ? "text-primary" : done ? "text-success" : "text-muted-foreground"
+                  active
+                    ? "text-primary"
+                    : done
+                      ? "text-success"
+                      : "text-muted-foreground",
                 )}
               >
                 {p}
@@ -223,10 +247,12 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
             exit={{ opacity: 0, y: -8 }}
             className="rounded-lg border-2 border-warning/50 bg-warning/5 p-5 shadow-[0_0_30px_-10px] shadow-warning/20"
           >
-            <p className="mb-2 text-sm font-bold text-warning">⚡ Action Required</p>
+            <p className="mb-2 text-sm font-bold text-warning">
+              ⚡ Action Required
+            </p>
             <p className="mb-4 text-xs text-muted-foreground">
-              Columbia Park (Armed, Tier A) is uncovered. G. Terrell confirmed out. 2 armed guards
-              available.
+              Columbia Park (Armed, Tier A) is uncovered. G. Terrell confirmed
+              out. 2 armed guards available.
             </p>
             <Button onClick={approveCascade} className="w-full gap-2">
               <Zap className="h-4 w-4" />
@@ -244,7 +270,12 @@ export default function LiveSimView({ managerName }: LiveSimViewProps) {
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
           <p className="text-xs font-semibold text-foreground">System Log</p>
           {phase === "filled" && (
-            <Button variant="ghost" size="sm" onClick={reset} className="h-6 gap-1 px-2 text-[11px]">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={reset}
+              className="h-6 gap-1 px-2 text-[11px]"
+            >
               <RotateCcw className="h-3 w-3" />
               Reset
             </Button>

@@ -13,10 +13,9 @@ const VIEW_TITLES: Record<string, string> = {
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  managerName: string;
 }
 
-export function DashboardLayout({ children, managerName }: DashboardLayoutProps) {
+export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [time, setTime] = useState(new Date());
   const location = useLocation();
 
@@ -30,7 +29,7 @@ export function DashboardLayout({ children, managerName }: DashboardLayoutProps)
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar managerName={managerName} />
+        <AppSidebar />
         <div className="flex flex-1 flex-col">
           {/* Top bar */}
           <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">

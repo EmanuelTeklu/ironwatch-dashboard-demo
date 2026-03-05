@@ -1,5 +1,6 @@
-import { Building2, PhoneOff, Zap, Users, Settings, Shield } from "lucide-react";
+import { Building2, PhoneOff, Zap, Users, LogOut, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -12,7 +13,6 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { CALLOUTS } from "@/lib/data";
 import type { ViewId } from "@/lib/types";
 
 const navItems: { id: ViewId; label: string; icon: typeof Building2; url: string }[] = [
@@ -22,14 +22,13 @@ const navItems: { id: ViewId; label: string; icon: typeof Building2; url: string
   { id: "pool", label: "Guard Pool", icon: Users, url: "/guards" },
 ];
 
-interface AppSidebarProps {
-  managerName: string;
-}
-
-export function AppSidebar({ managerName }: AppSidebarProps) {
+export function AppSidebar() {
   const { state } = useSidebar();
+  const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
-  const unresolvedCount = CALLOUTS.filter((c) => !c.resolved).length;
+
+  const displayName = user?.email?.split("@")[0] ?? "Manager";
+  const initial = displayName[0]?.toUpperCase() ?? "M";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -78,11 +77,6 @@ export function AppSidebar({ managerName }: AppSidebarProps) {
                     >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.label}</span>}
-                      {item.id === "callouts" && unresolvedCount > 0 && (
-                        <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                          {unresolvedCount}
-                        </span>
-                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -94,18 +88,21 @@ export function AppSidebar({ managerName }: AppSidebarProps) {
 
       <SidebarFooter>
         {!collapsed && (
-          <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent">
-            <Settings className="h-4 w-4" />
-            Settings
+          <button
+            onClick={signOut}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
           </button>
         )}
         <div className="flex items-center gap-3 px-3 py-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-            {managerName[0]}
+            {initial}
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">{managerName}</p>
+              <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
               <p className="text-xs text-muted-foreground">Manager</p>
             </div>
           )}
