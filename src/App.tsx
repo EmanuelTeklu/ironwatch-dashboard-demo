@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RealtimeProvider } from "@/components/RealtimeProvider";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Index from "./pages/Index";
 import CallOutsView from "./pages/CallOutsView";
@@ -28,15 +29,17 @@ const App = () => (
               path="/*"
               element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/callouts" element={<CallOutsView />} />
-                      <Route path="/guards" element={<GuardPoolView />} />
-                      <Route path="/simulation" element={<LiveSimView />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </DashboardLayout>
+                  <RealtimeProvider>
+                    <DashboardLayout>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/callouts" element={<CallOutsView />} />
+                        <Route path="/guards" element={<GuardPoolView />} />
+                        <Route path="/simulation" element={<LiveSimView />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </DashboardLayout>
+                  </RealtimeProvider>
                 </ProtectedRoute>
               }
             />
