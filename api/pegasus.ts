@@ -38,23 +38,25 @@ When given operational data, reason over it naturally. Be specific — cite guar
 const THINKING_BUDGET_TOKENS = 4096;
 const MAX_TOKENS = 8192;
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { messages, context } = req.body;
+  const { messages, context, viewContext } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: "messages array required" });
   }
 
-  const systemPrompt = context
-    ? `${SYSTEM_PROMPT}\n\nCurrent operational data:\n${JSON.stringify(context, null, 2)}`
-    : SYSTEM_PROMPT;
+  const contextSuffix = [
+    context
+      ? `\n\nCurrent operational data:\n${JSON.stringify(context, null, 2)}`
+      : "",
+    viewContext ? `\n\nCurrent view context:\n${viewContext}` : "",
+  ].join("");
+
+  const systemPrompt = `${SYSTEM_PROMPT}${contextSuffix}`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -79,9 +81,7 @@ export default async function handler(
       if (event.type === "content_block_start") {
         const block = event.content_block;
         if (block.type === "thinking") {
-          res.write(
-            `data: ${JSON.stringify({ thinkingStart: true })}\n\n`,
-          );
+          res.write(`data: ${JSON.stringify({ thinkingStart: true })}\n\n`);
         }
       }
 
@@ -98,17 +98,14 @@ export default async function handler(
         event.type === "content_block_delta" &&
         event.delta.type === "text_delta"
       ) {
-        res.write(
-          `data: ${JSON.stringify({ text: event.delta.text })}\n\n`,
-        );
+        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
       }
     }
 
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Unknown error";
     res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
     res.end();
   }

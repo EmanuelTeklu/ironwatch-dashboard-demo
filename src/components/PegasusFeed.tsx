@@ -42,6 +42,8 @@ interface PegasusFeedProps {
   readonly streamingThinking?: string;
   readonly onSendMessage: (content: string) => void;
   readonly className?: string;
+  readonly placeholder?: string;
+  readonly contextLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,11 +102,7 @@ function ThinkingDots() {
 }
 
 /** Collapsible section for Claude's extended thinking */
-function ThinkingSection({
-  thinking,
-}: {
-  readonly thinking: string;
-}) {
+function ThinkingSection({ thinking }: { readonly thinking: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   if (!thinking) return null;
@@ -210,11 +208,7 @@ function ThinkingBubble() {
 }
 
 /** Floating "scroll to bottom" button */
-function ScrollToBottomButton({
-  onClick,
-}: {
-  readonly onClick: () => void;
-}) {
+function ScrollToBottomButton({ onClick }: { readonly onClick: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -246,6 +240,8 @@ export function PegasusFeed({
   streamingThinking,
   onSendMessage,
   className,
+  placeholder,
+  contextLabel,
 }: PegasusFeedProps) {
   const [input, setInput] = useState("");
   const [userScrolledUp, setUserScrolledUp] = useState(false);
@@ -265,13 +261,13 @@ export function PegasusFeed({
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
-    const distanceFromBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     setUserScrolledUp(distanceFromBottom > SCROLL_THRESHOLD);
   }, []);
 
   /** Determine whether the last message is still being streamed */
-  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessage =
+    messages.length > 0 ? messages[messages.length - 1] : null;
   const showThinkingBubble =
     isStreaming && (!lastMessage || lastMessage.role === "manager");
 
@@ -322,9 +318,16 @@ export function PegasusFeed({
         <span className="text-sm" role="img" aria-label="Pegasus">
           🦅
         </span>
-        <span className="text-xs font-semibold tracking-wide text-foreground">
-          Pegasus
-        </span>
+        <div className="flex flex-col">
+          <span className="text-xs font-semibold tracking-wide text-foreground">
+            Pegasus
+          </span>
+          {contextLabel && (
+            <span className="text-[10px] text-muted-foreground/70">
+              {contextLabel}
+            </span>
+          )}
+        </div>
         {isStreaming && (
           <motion.span
             initial={{ opacity: 0 }}
@@ -332,9 +335,7 @@ export function PegasusFeed({
             className="ml-auto flex items-center gap-1.5"
           >
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400" />
-            <span className="text-[10px] text-purple-400/80">
-              streaming
-            </span>
+            <span className="text-[10px] text-purple-400/80">streaming</span>
           </motion.span>
         )}
       </div>
@@ -357,17 +358,13 @@ export function PegasusFeed({
                   key={msg.id}
                   message={msg}
                   isActiveStream={isActivelyStreaming}
-                  thinking={
-                    isActivelyStreaming ? streamingThinking : undefined
-                  }
+                  thinking={isActivelyStreaming ? streamingThinking : undefined}
                 />
               );
             })}
 
             {/* Thinking bubble: shown when streaming but no AI content yet */}
-            {showThinkingBubble && (
-              <ThinkingBubble key="__thinking__" />
-            )}
+            {showThinkingBubble && <ThinkingBubble key="__thinking__" />}
           </AnimatePresence>
           <div ref={bottomRef} className="h-px" />
         </div>
@@ -375,9 +372,7 @@ export function PegasusFeed({
 
       {/* Scroll-to-bottom overlay */}
       <AnimatePresence>
-        {userScrolledUp && (
-          <ScrollToBottomButton onClick={scrollToBottom} />
-        )}
+        {userScrolledUp && <ScrollToBottomButton onClick={scrollToBottom} />}
       </AnimatePresence>
 
       {/* Input bar */}
@@ -387,7 +382,7 @@ export function PegasusFeed({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask Pegasus anything..."
+          placeholder={placeholder ?? "Ask Pegasus anything..."}
           disabled={isStreaming}
           className={cn(
             "h-10 rounded-lg border-0 bg-secondary/50 text-sm",

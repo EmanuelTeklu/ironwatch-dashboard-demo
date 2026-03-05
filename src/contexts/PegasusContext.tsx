@@ -56,6 +56,8 @@ interface PegasusContextValue {
   readonly demoConfig: DemoConfig;
   readonly setDemoConfig: (config: DemoConfig, speed?: number) => void;
   readonly simulation: SimulationState;
+  readonly viewContext: string;
+  readonly setViewContext: (viewContext: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +79,7 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
   const [demoConfig, setDemoConfigState] =
     useState<DemoConfig>(DEFAULT_DEMO_CONFIG);
   const [simSpeed, setSimSpeed] = useState(DEFAULT_SIM_SPEED);
+  const [viewContext, setViewContext] = useState("");
   const autoStarted = useRef(false);
 
   const context = useMemo(
@@ -90,7 +93,7 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const pegasus = usePegasus({ context });
+  const pegasus = usePegasus({ context, viewContext });
 
   const simulation = useSimulation({
     addSystemMessage: pegasus.addSystemMessage,
@@ -124,8 +127,10 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
       demoConfig,
       setDemoConfig,
       simulation,
+      viewContext,
+      setViewContext,
     }),
-    [pegasus, demoConfig, setDemoConfig, simulation],
+    [pegasus, demoConfig, setDemoConfig, simulation, viewContext],
   );
 
   return (
