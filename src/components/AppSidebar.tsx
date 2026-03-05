@@ -5,7 +5,6 @@ import {
   Car,
   Bot,
   LogOut,
-  Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,18 +55,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarContent>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Shield className="h-5 w-5 text-primary" />
-          </div>
-          {!collapsed && (
-            <div>
-              <p className="text-sm font-bold text-foreground">IronWatch</p>
-              <p className="text-[10px] font-medium tracking-widest text-primary uppercase">
-                Rapid Response
-              </p>
-            </div>
-          )}
+        <div className="flex items-center justify-center px-4 py-4">
+          <img
+            src="/ironwatch-logo.png"
+            alt="IronWatch Security"
+            className={
+              collapsed
+                ? "h-8 w-8 object-contain"
+                : "h-12 w-auto object-contain"
+            }
+          />
         </div>
 
         {/* Client info */}
