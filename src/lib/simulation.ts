@@ -22,6 +22,7 @@ export interface SiteSimStatus {
   readonly guardResponse: string | null;
   readonly fillTimeMinutes: number | null;
   readonly escalatedToManager: boolean;
+  readonly contactAttempted: boolean;
 }
 
 export interface SimulationState {
@@ -97,6 +98,12 @@ function messageTypeForEvent(eventType: SimEvent["type"]): PegasusMessageType {
       return "info";
     case "therms-late":
       return "warning";
+    case "guard-contact-attempt":
+      return "info";
+    case "guard-no-response":
+      return "warning";
+    case "manager-approval":
+      return "action";
     case "callout-received":
       return "danger";
     case "cascade-start":
@@ -162,6 +169,7 @@ function createDefaultSiteStatus(siteId: number): SiteSimStatus {
     guardResponse: null,
     fillTimeMinutes: null,
     escalatedToManager: false,
+    contactAttempted: false,
   };
 }
 
@@ -254,6 +262,18 @@ function processSiteEffects(
           fillTimeMinutes: fillTime,
         }),
       );
+      break;
+    }
+    case "guard-contact-attempt": {
+      next.set(siteId, updateSiteStatus(current, { contactAttempted: true }));
+      break;
+    }
+    case "guard-no-response": {
+      next.set(siteId, updateSiteStatus(current, { status: "yellow" }));
+      break;
+    }
+    case "manager-approval": {
+      // Informational — no status change
       break;
     }
     case "therms-late": {

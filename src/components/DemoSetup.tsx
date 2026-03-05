@@ -109,7 +109,7 @@ export default function DemoSetup({ onStart }: DemoSetupProps) {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              IronWatch AI Operations Manager
+              AI-Powered Security Operations Manager
             </p>
           </CardHeader>
 

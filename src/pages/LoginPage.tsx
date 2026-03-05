@@ -67,9 +67,9 @@ export default function LoginPage() {
             <Shield className="h-8 w-8 text-primary" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">IronWatch</h1>
+            <h1 className="text-xl font-bold text-foreground">Pegasus</h1>
             <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-primary">
-              Rapid Response
+              IronWatch Security
             </p>
           </div>
         </div>

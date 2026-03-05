@@ -4,7 +4,7 @@
 // Color-coded left border by SiteBoardStatus.
 // ---------------------------------------------------------------------------
 
-import { Building2, Shield, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { Building2, Shield, Clock, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { SiteBoardCard } from "@/lib/types";
@@ -17,25 +17,22 @@ import type { GuardScanState, ScanComplianceStatus } from "@/lib/therms-types";
 const BORDER_COLORS: Record<string, string> = {
   callout: "border-l-red-500",
   uncovered: "border-l-orange-500",
-  unconfirmed: "border-l-yellow-500",
   "late-checkin": "border-l-yellow-500",
-  confirmed: "border-l-green-500",
+  "on-post": "border-l-green-500",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   callout: "Callout",
   uncovered: "Uncovered",
-  unconfirmed: "Unconfirmed",
   "late-checkin": "Late Check-in",
-  confirmed: "Confirmed",
+  "on-post": "On Post",
 };
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
   callout: "border-red-500/30 bg-red-500/10 text-red-600",
   uncovered: "border-orange-500/30 bg-orange-500/10 text-orange-600",
-  unconfirmed: "border-yellow-500/30 bg-yellow-500/10 text-yellow-600",
   "late-checkin": "border-yellow-500/30 bg-yellow-500/10 text-yellow-600",
-  confirmed: "border-green-500/30 bg-green-500/10 text-green-600",
+  "on-post": "border-green-500/30 bg-green-500/10 text-green-600",
 };
 
 const COMPLIANCE_DOT: Record<ScanComplianceStatus, string> = {
@@ -98,7 +95,10 @@ export function SiteCard({ card, scanState, onClick }: SiteCardProps) {
         {/* Status badge */}
         <Badge
           variant="outline"
-          className={cn("text-[10px] px-1.5 py-0 shrink-0", STATUS_BADGE_STYLES[status])}
+          className={cn(
+            "text-[10px] px-1.5 py-0 shrink-0",
+            STATUS_BADGE_STYLES[status],
+          )}
         >
           {STATUS_LABELS[status]}
         </Badge>
@@ -119,19 +119,17 @@ export function SiteCard({ card, scanState, onClick }: SiteCardProps) {
         </div>
         {scanState && (
           <div
-            className={cn("h-2.5 w-2.5 rounded-full shrink-0", COMPLIANCE_DOT[complianceStatus])}
+            className={cn(
+              "h-2.5 w-2.5 rounded-full shrink-0",
+              COMPLIANCE_DOT[complianceStatus],
+            )}
             title={`Scan: ${complianceStatus}`}
           />
         )}
       </div>
 
-      {/* Status strip: confirmation, check-in */}
-      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/50 pt-3">
-        <StatusIndicator
-          label="Confirmed"
-          active={card.confirmed}
-          icon={<CheckCircle2 className="h-3 w-3" />}
-        />
+      {/* Status strip: check-in + scans */}
+      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/50 pt-3">
         <StatusIndicator
           label="Checked In"
           active={card.checkedIn}
@@ -152,7 +150,9 @@ export function SiteCard({ card, scanState, onClick }: SiteCardProps) {
         <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2">
           <div className="flex items-center gap-1.5">
             <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
-            <span className="text-xs font-semibold text-red-600">Active Callout</span>
+            <span className="text-xs font-semibold text-red-600">
+              Active Callout
+            </span>
           </div>
           {calloutReason && (
             <p className="mt-1 text-[11px] text-red-600/80 truncate">
@@ -186,7 +186,12 @@ function StatusIndicator({ label, active, icon }: StatusIndicatorProps) {
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <div className={cn("mt-0.5 flex items-center gap-1", active ? "text-green-600" : "text-muted-foreground")}>
+      <div
+        className={cn(
+          "mt-0.5 flex items-center gap-1",
+          active ? "text-green-600" : "text-muted-foreground",
+        )}
+      >
         {icon}
         <span className="text-xs font-medium">{active ? "Yes" : "No"}</span>
       </div>

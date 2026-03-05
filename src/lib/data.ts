@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// IronWatch + Pegasus — Rich Mock Data
+// Pegasus — Rich Mock Data
 // Dittmar contract: 24 Arlington-area sites, 9PM–5AM, nightly operations
 // ---------------------------------------------------------------------------
 
@@ -1589,7 +1589,36 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
 
-  // --- First mid-shift callout ---
+  // --- First mid-shift callout (Reyes — friction sequence) ---
+  {
+    time: "22:32",
+    type: "guard-contact-attempt",
+    guardId: 2008,
+    siteId: 1002,
+    data: {
+      message:
+        "Texting M. Reyes: 'Hey, are you still on post at Clarendon Gate? Therms shows no recent scan.'",
+    },
+  },
+  {
+    time: "22:42",
+    type: "guard-no-response",
+    guardId: 2008,
+    siteId: 1002,
+    data: {
+      message: "No response from M. Reyes after 10 min. Escalating to manager.",
+    },
+  },
+  {
+    time: "22:45",
+    type: "manager-approval",
+    guardId: 2008,
+    siteId: 1002,
+    data: {
+      message:
+        "Manager notified — awaiting approval to initiate cascade for Clarendon Gate.",
+    },
+  },
   {
     time: "22:47",
     type: "callout-received",
@@ -1653,7 +1682,37 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
 
-  // --- Second mid-shift callout ---
+  // --- Second mid-shift callout (Farmer — friction sequence) ---
+  {
+    time: "01:00",
+    type: "guard-contact-attempt",
+    guardId: 2011,
+    siteId: 1019,
+    data: {
+      message:
+        "Texting J. Farmer: 'Checking in — everything okay at Wildwood Towers? Last scan was 45 min ago.'",
+    },
+  },
+  {
+    time: "01:10",
+    type: "guard-no-response",
+    guardId: 2011,
+    siteId: 1019,
+    data: {
+      message:
+        "No response from J. Farmer after 10 min. Escalating to manager.",
+    },
+  },
+  {
+    time: "01:13",
+    type: "manager-approval",
+    guardId: 2011,
+    siteId: 1019,
+    data: {
+      message:
+        "Manager notified — awaiting approval to initiate cascade for Wildwood Towers.",
+    },
+  },
   {
     time: "01:15",
     type: "callout-received",

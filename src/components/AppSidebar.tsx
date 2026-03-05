@@ -1,4 +1,4 @@
-import { LayoutDashboard, PhoneOff, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -30,7 +30,12 @@ const pegasusItem = {
 
 const operationsItems: NavItem[] = [
   { id: "sites", label: "Tonight's Board", icon: LayoutDashboard, url: "/" },
-  { id: "callouts", label: "Call-Outs", icon: PhoneOff, url: "/callouts" },
+  {
+    id: "callouts",
+    label: "Pre-Shift",
+    icon: ClipboardCheck,
+    url: "/callouts",
+  },
   { id: "pool", label: "Guard Pool", icon: Users, url: "/guards" },
 ];
 
@@ -93,14 +98,7 @@ export function AppSidebar() {
                       alt=""
                       className="h-4 w-4 object-contain"
                     />
-                    {!collapsed && (
-                      <span className="flex items-center gap-2">
-                        {pegasusItem.label}
-                        <span className="rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-purple-400">
-                          AI
-                        </span>
-                      </span>
-                    )}
+                    {!collapsed && <span>{pegasusItem.label}</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

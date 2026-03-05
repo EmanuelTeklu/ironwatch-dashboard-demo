@@ -230,14 +230,15 @@ export function ThreadSidebar({
 
   return (
     <div className="flex h-full w-[280px] min-w-[280px] flex-col border-r border-border bg-card/50">
-      {/* Header with logo + new thread button */}
+      {/* Header with Pegasus icon + new thread button */}
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
         <div className="flex items-center gap-2">
           <img
-            src="/ironwatch-logo.png"
-            alt="IronWatch"
-            className="h-6 w-auto object-contain"
+            src="/pegasus.png"
+            alt="Pegasus"
+            className="h-5 w-5 object-contain"
           />
+          <span className="text-sm font-semibold text-purple-300">Pegasus</span>
         </div>
         <Button
           onClick={onCreateThread}

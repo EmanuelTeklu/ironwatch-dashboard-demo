@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// IronWatch + Pegasus Type Definitions
+// Pegasus Type Definitions
 // ---------------------------------------------------------------------------
 
 // --- Site -------------------------------------------------------------------
@@ -93,6 +93,9 @@ export type SimEventType =
   | "therms-checkin"
   | "therms-patrol"
   | "therms-late"
+  | "guard-contact-attempt"
+  | "guard-no-response"
+  | "manager-approval"
   | "callout-received"
   | "cascade-start"
   | "cascade-text-sent"
@@ -173,14 +176,12 @@ export interface ScheduleEntry {
 export type SiteBoardStatus =
   | "callout"
   | "uncovered"
-  | "unconfirmed"
   | "late-checkin"
-  | "confirmed";
+  | "on-post";
 
 export interface SiteBoardCard {
   readonly site: Site;
   readonly guard: Guard | null;
-  readonly confirmed: boolean;
   readonly checkedIn: boolean;
   readonly status: SiteBoardStatus;
   readonly calloutActive: boolean;

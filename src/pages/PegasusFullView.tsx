@@ -11,7 +11,6 @@ import {
   ActiveThreadPanel,
   EmptyState,
 } from "@/components/pegasus/ActiveThreadPanel";
-import { OperationsFeed } from "@/components/pegasus/OperationsFeed";
 import { PhoneEngagement } from "@/components/PhoneEngagement";
 import { SuggestionButtons } from "@/components/pegasus/SuggestionButtons";
 
@@ -19,7 +18,7 @@ import { SuggestionButtons } from "@/components/pegasus/SuggestionButtons";
 // Constants
 // ---------------------------------------------------------------------------
 
-const CHAT_SIDEBAR_WIDTH = 420;
+// No longer needed — chat is now full-width
 
 // ---------------------------------------------------------------------------
 // Component
@@ -61,25 +60,8 @@ export default function PegasusFullView() {
         onOpenPhone={() => setPhoneOpen(true)}
       />
 
-      {/* Center: Live operations feed */}
+      {/* Full-width chat panel */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <OperationsFeed
-          messages={messages}
-          simTime={simulation.simTime}
-          phase={simulation.phase}
-          isRunning={simulation.isRunning}
-          isPaused={simulation.isPaused}
-          onPause={simulation.pause}
-          onResume={simulation.resume}
-          onReset={simulation.reset}
-        />
-      </div>
-
-      {/* Right sidebar: Pegasus chat */}
-      <div
-        className="flex flex-col border-l border-border bg-card/50"
-        style={{ width: CHAT_SIDEBAR_WIDTH, minWidth: CHAT_SIDEBAR_WIDTH }}
-      >
         {activeThread ? (
           <ActiveThreadPanel
             threadTitle={activeThread.title}

@@ -32,7 +32,10 @@ import type { GuardScanState, ScanComplianceStatus } from "@/lib/therms-types";
 // Helpers
 // ---------------------------------------------------------------------------
 
-const COMPLIANCE_BADGE: Record<ScanComplianceStatus, { label: string; className: string }> = {
+const COMPLIANCE_BADGE: Record<
+  ScanComplianceStatus,
+  { label: string; className: string }
+> = {
   compliant: {
     label: "Compliant",
     className: "border-green-500/30 bg-green-500/10 text-green-600",
@@ -88,7 +91,12 @@ export function SiteDetailPanel({
   const { site, guard } = card;
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+    >
       <SheetContent side="right" className="w-full sm:max-w-lg">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
@@ -119,7 +127,12 @@ export function SiteDetailPanel({
             )}
 
             {/* Callout history for this site */}
-            {guard && <CalloutHistory guardCallouts={guard.calloutHistory} siteId={site.id} />}
+            {guard && (
+              <CalloutHistory
+                guardCallouts={guard.calloutHistory}
+                siteId={site.id}
+              />
+            )}
 
             <Separator />
 
@@ -169,9 +182,8 @@ function SiteOverview({ card }: { readonly card: SiteBoardCard }) {
         />
       </div>
 
-      {/* Confirmation + check-in status */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatusMini label="Confirmed" active={card.confirmed} />
+      {/* Check-in status */}
+      <div className="grid grid-cols-1 gap-3">
         <StatusMini label="Checked In" active={card.checkedIn} />
       </div>
     </div>
@@ -190,7 +202,9 @@ function GuardSection({
   if (!guard) {
     return (
       <div>
-        <h4 className="text-sm font-semibold text-foreground">Assigned Guard</h4>
+        <h4 className="text-sm font-semibold text-foreground">
+          Assigned Guard
+        </h4>
         <p className="mt-2 text-xs text-muted-foreground italic">
           No guard assigned to this site.
         </p>
@@ -208,7 +222,9 @@ function GuardSection({
       {/* Guard identity */}
       <div className="flex items-center gap-2">
         <Shield className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium text-foreground">{guard.name}</span>
+        <span className="text-sm font-medium text-foreground">
+          {guard.name}
+        </span>
         <span className="text-xs text-muted-foreground">{guard.role}</span>
         {guard.armed && (
           <Badge
@@ -240,8 +256,14 @@ function GuardSection({
           THERMS Performance
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatMini label="Avg Check-in" value={`${guard.thermsAvgCheckin} min`} />
-          <StatMini label="Late Starts" value={String(guard.thermsLateStarts)} />
+          <StatMini
+            label="Avg Check-in"
+            value={`${guard.thermsAvgCheckin} min`}
+          />
+          <StatMini
+            label="Late Starts"
+            value={String(guard.thermsLateStarts)}
+          />
           <StatMini
             label="Patrol Rate"
             value={`${Math.round(guard.thermsPatrolRate * 100)}%`}
@@ -265,13 +287,17 @@ function GuardSection({
               <p className="text-[10px] text-muted-foreground">Total</p>
               <div className="flex items-center gap-1">
                 <Radio className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs font-medium">{scanState.scanCount}</span>
+                <span className="text-xs font-medium">
+                  {scanState.scanCount}
+                </span>
               </div>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground">Last Scan</p>
               <p className="text-xs font-medium">
-                {scanState.lastScanTime ? formatScanTime(scanState.lastScanTime) : "---"}
+                {scanState.lastScanTime
+                  ? formatScanTime(scanState.lastScanTime)
+                  : "---"}
               </p>
             </div>
             <div>
@@ -322,7 +348,12 @@ function CalloutHistory({
   guardCallouts,
   siteId,
 }: {
-  readonly guardCallouts: readonly { readonly date: string; readonly day: string; readonly siteId: number; readonly reason: string }[];
+  readonly guardCallouts: readonly {
+    readonly date: string;
+    readonly day: string;
+    readonly siteId: number;
+    readonly reason: string;
+  }[];
   readonly siteId: number;
 }) {
   const siteCallouts = guardCallouts.filter((co) => co.siteId === siteId);
@@ -339,7 +370,10 @@ function CalloutHistory({
       ) : (
         <div className="mt-2 space-y-1">
           {siteCallouts.map((co) => (
-            <div key={`${co.date}-${co.siteId}`} className="flex items-center gap-2 text-xs">
+            <div
+              key={`${co.date}-${co.siteId}`}
+              className="flex items-center gap-2 text-xs"
+            >
               <AlertTriangle className="h-3 w-3 text-orange-500 shrink-0" />
               <span className="text-muted-foreground">{co.date}</span>
               <span className="text-foreground">{co.reason}</span>
@@ -398,13 +432,21 @@ function StatusMini({
   return (
     <div className="flex items-center gap-2">
       <CheckCircle2
-        className={cn("h-4 w-4", active ? "text-green-600" : "text-muted-foreground/40")}
+        className={cn(
+          "h-4 w-4",
+          active ? "text-green-600" : "text-muted-foreground/40",
+        )}
       />
       <div>
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className={cn("text-xs font-medium", active ? "text-green-600" : "text-muted-foreground")}>
+        <p
+          className={cn(
+            "text-xs font-medium",
+            active ? "text-green-600" : "text-muted-foreground",
+          )}
+        >
           {active ? "Yes" : "No"}
         </p>
       </div>

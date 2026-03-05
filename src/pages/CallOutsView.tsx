@@ -1,8 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Volume2, Play } from "lucide-react";
 import { useCalloutSimulation } from "@/hooks/use-callout-simulation";
 import { useElevenLabs } from "@/hooks/use-elevenlabs";
 import { usePegasusContext } from "@/contexts/PegasusContext";
+import { useSchedule } from "@/hooks/use-schedule";
+import { useGuards } from "@/hooks/use-guards";
 import type { CalloutEvent } from "@/lib/callout-simulation";
 import { Button } from "@/components/ui/button";
 import { useCallOuts } from "@/hooks/use-call-outs";
@@ -11,7 +13,14 @@ import { QueryLoading, QueryError } from "@/components/QueryState";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, AlertCircle, Clock, Zap } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Zap,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import type { CallOut } from "@/lib/types";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -27,9 +36,30 @@ export default function CallOutsView() {
   const [dayFilter, setDayFilter] = useState("All");
   const [rangeView, setRangeView] = useState<"week" | "8weeks">("week");
   const { data: weekCallOuts, isLoading, error, refetch } = useCallOuts();
+  const { data: schedule } = useSchedule();
+  const { data: guards } = useGuards();
 
   const { addSystemMessage } = usePegasusContext();
   const { speak, isPlaying } = useElevenLabs();
+
+  // Build confirmation data from schedule + guards
+  const confirmationData = useMemo(() => {
+    if (!schedule || !guards)
+      return {
+        confirmed: 0,
+        total: 0,
+        unconfirmed: [] as { name: string; siteId: number }[],
+      };
+    const guardMap = new Map(guards.map((g) => [g.id, g]));
+    const confirmed = schedule.filter((s) => s.connectTeamsConfirmed).length;
+    const unconfirmed = schedule
+      .filter((s) => !s.connectTeamsConfirmed)
+      .map((s) => ({
+        name: guardMap.get(s.guardId)?.name ?? `Guard #${s.guardId}`,
+        siteId: s.siteId,
+      }));
+    return { confirmed, total: schedule.length, unconfirmed };
+  }, [schedule, guards]);
 
   const handleCallout = useCallback(
     (event: CalloutEvent) => {
@@ -94,6 +124,59 @@ export default function CallOutsView() {
 
   return (
     <div className="space-y-6">
+      {/* Shift Confirmations section */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Shift Confirmations (ConnectTeams)
+          </p>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs",
+              confirmationData.unconfirmed.length > 0
+                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-600"
+                : "border-green-500/30 bg-green-500/10 text-green-600",
+            )}
+          >
+            {confirmationData.confirmed}/{confirmationData.total} Confirmed
+          </Badge>
+        </div>
+        {confirmationData.unconfirmed.length > 0 ? (
+          <div className="space-y-2">
+            {confirmationData.unconfirmed.map((guard) => (
+              <div
+                key={`${guard.siteId}-${guard.name}`}
+                className="flex items-center gap-3 rounded-md border border-yellow-500/20 bg-yellow-500/5 px-3 py-2"
+              >
+                <UserX className="h-4 w-4 text-yellow-600 shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-foreground">
+                    {guard.name}
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Site #{guard.siteId}
+                  </span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="ml-auto text-[10px] border-yellow-500/30 bg-yellow-500/10 text-yellow-600"
+                >
+                  Unconfirmed
+                </Badge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-green-600">
+            <UserCheck className="h-4 w-4" />
+            <span className="text-sm">
+              All guards confirmed for tonight's shift
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Range toggle */}
       <div className="flex gap-2">
         <button

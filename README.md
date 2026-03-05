@@ -1,45 +1,89 @@
-# IronWatch Dashboard Demo
+# Pegasus
 
-Security guard management and rapid response dispatch system. Built for property managers overseeing multi-site security operations.
+**AI-Powered Security Operations Manager**
+
+Pegasus is an AI copilot that manages overnight security operations autonomously — monitoring 24 sites, coordinating guards, handling callouts, and keeping the manager informed. Built for IronWatch Security's Dittmar contract in Arlington, VA.
+
+---
 
 ## Features
 
-- **Site Coverage Monitoring** — Real-time view of all properties with guard status (covered, confirming, uncovered)
-- **Guard Pool Management** — Track officers by GRS score, armed certification, hours, and availability
-- **Call-Out Tracking** — Monitor no-shows, resolution time, and shift fill history
-- **AI Cascade System** — Automated ranked outreach when a guard fails to report, with configurable rules (rest rule, overtime cap, armed filter)
-- **Live Simulation** — Interactive demo of a complete call-out scenario with cascade resolution
+### Tonight's Board
+Real-time site grid with color-coded status cards. Each card shows guard assignment, THERMS check-in status, scan compliance, and live callout banners. Filter by armed sites, active issues, or callouts. Operational metrics bar tracks coverage, check-in rates, and fill times at a glance.
+
+### Pre-Shift Management
+ConnectTeams shift confirmations at the top — see who's confirmed and who hasn't responded. Below that: callout history, weekly/8-week distribution charts, cost impact analysis, and response time comparisons (manual vs Pegasus).
+
+### Pegasus AI Chat
+Conversational AI copilot powered by Claude. Context-aware suggestions change based on the active view. Full-page mode with thread sidebar for managing multiple conversations — new threads, rename, delete, search across history.
+
+### Callout Cascade
+Automated guard outreach with built-in friction before manager escalation. Pegasus contacts the guard first, waits for a response, escalates to the manager if unresponsive, then initiates the cascade. Pattern detection flags repeat offenders.
+
+### Hourly Summaries
+Proactive operational status reports every hour — coverage counts, callout updates, compliance rates, and actionable flags. No need to ask — Pegasus keeps you informed.
+
+### THERMS Integration
+Scan compliance tracking per guard. Real-time patrol monitoring with checkpoint tracking. Compliance dots on every site card. Late start detection and patrol rate analysis for performance reviews.
+
+---
 
 ## Tech Stack
 
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui (Radix primitives)
-- TanStack React Query
-- Framer Motion
-- Recharts
+- **React 18** + **TypeScript** — Component architecture with strict types
+- **Tailwind CSS** — Utility-first styling with dark mode
+- **Vite** — Fast dev server and optimized builds
+- **Claude API** — AI-powered operational copilot (Anthropic SDK)
+- **Framer Motion** — Smooth animations and transitions
+- **Tanstack Query** — Server state management
+- **Supabase** — Auth and database
+
+---
 
 ## Getting Started
 
-```sh
+```bash
+# Clone
+git clone https://github.com/EmanuelTeklu/pegasus.git
+cd pegasus
+
+# Install
 npm install
+
+# Dev server
 npm run dev
 ```
 
-Opens at `http://localhost:8080`.
+Create a `.env` file with your keys:
 
-## Project Structure
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_key
+VITE_ANTHROPIC_API_KEY=your_claude_key
+```
+
+---
+
+## Screenshots
+
+*Coming soon*
+
+---
+
+## Architecture
 
 ```
 src/
-  pages/        # Route-level views (Sites, CallOuts, GuardPool, LiveSim)
-  components/   # Layout and shared components
-  components/ui # shadcn/ui component library
-  hooks/        # Custom React hooks
-  lib/          # Data layer, types, utilities
-  test/         # Test setup and specs
+  components/       UI components (board, pegasus, sidebar, shared)
+  pages/            Route-level views (Board, Pre-Shift, Guard Pool, Pegasus)
+  contexts/         React contexts (Pegasus AI, Auth)
+  hooks/            Custom hooks (data fetching, simulation, THERMS)
+  lib/              Core logic (types, data, simulation engine)
 ```
+
+The simulation engine (`src/lib/simulation.ts`) drives a compressed overnight demo — 10 hours of operations in ~2 minutes. Events fire in sequence with realistic timing, updating site statuses and feeding messages to the Pegasus AI chat.
+
+---
 
 ## Scripts
 
@@ -50,3 +94,13 @@ src/
 | `npm run preview` | Preview production build |
 | `npm run test` | Run tests |
 | `npm run lint` | Lint with ESLint |
+
+---
+
+## License
+
+MIT
+
+---
+
+Built by [Emanuel Teklu](https://github.com/EmanuelTeklu)

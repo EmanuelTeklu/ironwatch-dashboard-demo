@@ -35,22 +35,20 @@ type BoardFilter = "all" | "armed" | "at-risk" | "callouts";
 const STATUS_PRIORITY: Record<SiteBoardStatus, number> = {
   callout: 0,
   uncovered: 1,
-  unconfirmed: 2,
-  "late-checkin": 3,
-  confirmed: 4,
+  "late-checkin": 2,
+  "on-post": 3,
 };
 
 function deriveBoardStatus(
   guard: Guard | null,
-  confirmed: boolean,
+  _confirmed: boolean,
   checkedIn: boolean,
   simStatus: SiteSimStatus | undefined,
 ): SiteBoardStatus {
   if (simStatus?.calloutActive) return "callout";
   if (!guard) return "uncovered";
-  if (!confirmed) return "unconfirmed";
   if (simStatus?.status === "yellow" && !checkedIn) return "late-checkin";
-  return "confirmed";
+  return "on-post";
 }
 
 function buildSiteBoardCards(
@@ -74,7 +72,6 @@ function buildSiteBoardCards(
     return {
       site,
       guard,
-      confirmed,
       checkedIn,
       status,
       calloutActive: simStatus?.calloutActive ?? false,
@@ -94,7 +91,7 @@ function filterCards(
     case "armed":
       return cards.filter((c) => c.site.armed);
     case "at-risk":
-      return cards.filter((c) => c.status !== "confirmed");
+      return cards.filter((c) => c.status !== "on-post");
     case "callouts":
       return cards.filter((c) => c.calloutActive);
     default:
@@ -104,11 +101,14 @@ function filterCards(
 
 function sortCards(cards: readonly SiteBoardCard[]): readonly SiteBoardCard[] {
   return [...cards].sort(
-    (a, b) => (STATUS_PRIORITY[a.status] ?? 4) - (STATUS_PRIORITY[b.status] ?? 4),
+    (a, b) =>
+      (STATUS_PRIORITY[a.status] ?? 4) - (STATUS_PRIORITY[b.status] ?? 4),
   );
 }
 
-function extractGuardIds(schedule: readonly ScheduleEntry[]): readonly number[] {
+function extractGuardIds(
+  schedule: readonly ScheduleEntry[],
+): readonly number[] {
   const seen = new Set<number>();
   const ids: number[] = [];
   for (const entry of schedule) {
@@ -143,8 +143,16 @@ function FilterPills({ filter, onFilterChange, counts }: FilterPillsProps) {
   }[] = [
     { id: "all", label: `All Sites ${counts.total}` },
     { id: "armed", label: `Armed ${counts.armed}` },
-    { id: "at-risk", label: `At Risk ${counts.atRisk}`, variant: "destructive" },
-    { id: "callouts", label: `Callouts ${counts.callouts}`, variant: "destructive" },
+    {
+      id: "at-risk",
+      label: `Issues ${counts.atRisk}`,
+      variant: "destructive",
+    },
+    {
+      id: "callouts",
+      label: `Callouts ${counts.callouts}`,
+      variant: "destructive",
+    },
   ];
 
   return (
@@ -297,7 +305,7 @@ function TonightsBoardContent({
 
   // Computed counts
   const counts = useMemo(() => {
-    const atRisk = boardCards.filter((c) => c.status !== "confirmed").length;
+    const atRisk = boardCards.filter((c) => c.status !== "on-post").length;
     const armed = boardCards.filter((c) => c.site.armed).length;
     const callouts = boardCards.filter((c) => c.calloutActive).length;
     return { total: boardCards.length, armed, atRisk, callouts };
@@ -313,7 +321,7 @@ function TonightsBoardContent({
   const selectedCard = useMemo(
     () =>
       selectedSiteId !== null
-        ? boardCards.find((c) => c.site.id === selectedSiteId) ?? null
+        ? (boardCards.find((c) => c.site.id === selectedSiteId) ?? null)
         : null,
     [boardCards, selectedSiteId],
   );

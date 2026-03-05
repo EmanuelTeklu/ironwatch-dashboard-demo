@@ -1,6 +1,7 @@
 {
-  "name": "ironwatch-dashboard",
-  "private": true,
+  "name": "pegasus",
+  "description": "AI-Powered Security Operations Manager",
+  "private": false,
   "version": "1.0.0",
   "type": "module",
   "scripts": {

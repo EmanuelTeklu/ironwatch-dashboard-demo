@@ -22,7 +22,7 @@ const PEGASUS_PANEL_KEY = "ironwatch:pegasus-open";
 
 const VIEW_TITLES: Record<string, string> = {
   "/": "Tonight's Board",
-  "/callouts": "Call-Outs",
+  "/callouts": "Pre-Shift",
   "/simulation": "Live Sim",
   "/guards": "Guard Pool",
 };
@@ -36,20 +36,20 @@ const PANEL_WIDTH = 380;
 const VIEW_CONTEXTS: Record<string, string> = {
   "/": "You are assisting the manager while they view Tonight's Board — a live grid of 24 Dittmar sites showing guard assignments, ConnectTeams confirmation status, Therms check-in status, rover status strip, and one-tap calling. Focus on real-time site monitoring, flag any issues, and help the manager stay on top of all 24 sites.",
   "/callouts":
-    "You are assisting the manager while they view the Call-Outs panel — showing active and historical callouts, fill times, cost impact, and response comparisons. Focus on helping the manager fill uncovered shifts, run the cascade process, and optimize response times.",
+    "You are assisting the manager while they view the Pre-Shift panel — showing ConnectTeams shift confirmations, active and historical callouts, fill times, cost impact, and response comparisons. Focus on helping the manager confirm guards, fill uncovered shifts, run the cascade process, and optimize response times.",
   "/guards":
     "You are assisting the manager while they view the Guard Pool — showing all guards with GRS scores, hours, site familiarity, and availability. Help with guard selection, coverage questions, and workforce insights.",
 };
 
 const VIEW_CONTEXT_LABELS: Record<string, string> = {
   "/": "Watching Tonight's Board",
-  "/callouts": "Monitoring Call-Outs",
+  "/callouts": "Monitoring Pre-Shift",
   "/guards": "Reviewing Guard Pool",
 };
 
 const VIEW_PLACEHOLDERS: Record<string, string> = {
   "/": "Ask about site status, check-ins...",
-  "/callouts": "Ask about callouts, fill coverage...",
+  "/callouts": "Ask about confirmations, callouts...",
   "/guards": "Ask about guard availability, GRS...",
 };
 
