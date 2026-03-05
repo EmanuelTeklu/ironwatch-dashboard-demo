@@ -1,12 +1,26 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { SITES, GUARDS, CALLOUTS } from "./data";
-import type { Site, Guard, CallOut } from "./types";
+import {
+  SITES,
+  GUARDS,
+  CALLOUTS,
+  ROVERS,
+  TONIGHT_SCHEDULE,
+  SIM_TIMELINE,
+} from "./data";
+import type {
+  Site,
+  Guard,
+  CallOut,
+  Rover,
+  ScheduleEntry,
+  SimEvent,
+} from "./types";
 import type { ShiftRow, CascadeEventRow } from "./database.types";
 
 class ApiError extends Error {
   constructor(
     message: string,
-    public readonly code?: string
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -46,7 +60,7 @@ export async function getSiteById(id: number): Promise<Site | null> {
 
 export async function updateSite(
   id: number,
-  updates: Partial<Pick<Site, "name" | "addr" | "armed" | "tier">>
+  updates: Partial<Pick<Site, "name" | "addr" | "armed" | "tier">>,
 ): Promise<Site> {
   if (!isSupabaseConfigured) {
     const site = SITES.find((s) => s.id === id);
@@ -128,7 +142,7 @@ export async function updateGuard(
     max: number;
     last_out: string | null;
     status: Guard["status"];
-  }>
+  }>,
 ): Promise<Guard> {
   if (!isSupabaseConfigured) {
     const guard = GUARDS.find((g) => g.id === id);
@@ -162,7 +176,7 @@ export async function getCallOuts(): Promise<CallOut[]> {
 }
 
 export async function createCallOut(
-  callOut: Omit<CallOut, "resolved" | "fill" | "by">
+  callOut: Omit<CallOut, "resolved" | "fill" | "by">,
 ): Promise<CallOut> {
   if (!isSupabaseConfigured) {
     return { ...callOut, resolved: false, fill: null, by: null };
@@ -190,7 +204,7 @@ export async function createCallOut(
 export async function resolveCallOut(
   id: number,
   fill: number,
-  by: string
+  by: string,
 ): Promise<void> {
   if (!isSupabaseConfigured) return;
 
@@ -230,7 +244,7 @@ export async function getShiftsBySite(siteId: number): Promise<ShiftRow[]> {
 }
 
 export async function createShift(
-  shift: Pick<ShiftRow, "site_id" | "guard_id" | "start_time">
+  shift: Pick<ShiftRow, "site_id" | "guard_id" | "start_time">,
 ): Promise<ShiftRow> {
   if (!isSupabaseConfigured) throw new ApiError("Supabase not configured");
 
@@ -252,7 +266,7 @@ export async function createShift(
 // ---------- Cascade Events ----------
 
 export async function getCascadeEvents(
-  callOutId: number
+  callOutId: number,
 ): Promise<CascadeEventRow[]> {
   if (!isSupabaseConfigured) return [];
 
@@ -267,7 +281,7 @@ export async function getCascadeEvents(
 }
 
 export async function createCascadeEvent(
-  event: Pick<CascadeEventRow, "call_out_id" | "guard_id" | "contacted_at">
+  event: Pick<CascadeEventRow, "call_out_id" | "guard_id" | "contacted_at">,
 ): Promise<CascadeEventRow> {
   if (!isSupabaseConfigured) throw new ApiError("Supabase not configured");
 
@@ -284,6 +298,30 @@ export async function createCascadeEvent(
 
   if (error) handleError(error);
   return data;
+}
+
+// ---------- Rovers ----------
+
+export async function getRovers(): Promise<Rover[]> {
+  if (!isSupabaseConfigured) return ROVERS;
+  // Future: Supabase query
+  return ROVERS;
+}
+
+// ---------- Schedule ----------
+
+export async function getTonightSchedule(): Promise<ScheduleEntry[]> {
+  if (!isSupabaseConfigured) return TONIGHT_SCHEDULE;
+  // Future: Supabase query
+  return TONIGHT_SCHEDULE;
+}
+
+// ---------- Simulation ----------
+
+export async function getSimTimeline(): Promise<SimEvent[]> {
+  if (!isSupabaseConfigured) return SIM_TIMELINE;
+  // Future: Supabase query
+  return SIM_TIMELINE;
 }
 
 export { ApiError };
