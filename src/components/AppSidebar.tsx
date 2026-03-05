@@ -1,4 +1,12 @@
-import { Building2, PhoneOff, Zap, Users, LogOut, Shield } from "lucide-react";
+import {
+  LayoutDashboard,
+  PhoneOff,
+  Users,
+  Car,
+  Bot,
+  LogOut,
+  Shield,
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -15,11 +23,17 @@ import {
 } from "@/components/ui/sidebar";
 import type { ViewId } from "@/lib/types";
 
-const navItems: { id: ViewId; label: string; icon: typeof Building2; url: string }[] = [
-  { id: "sites", label: "Sites", icon: Building2, url: "/" },
+const navItems: {
+  id: ViewId;
+  label: string;
+  icon: typeof LayoutDashboard;
+  url: string;
+}[] = [
+  { id: "sites", label: "Tonight's Board", icon: LayoutDashboard, url: "/" },
   { id: "callouts", label: "Call-Outs", icon: PhoneOff, url: "/callouts" },
-  { id: "cascade", label: "Live Sim", icon: Zap, url: "/simulation" },
   { id: "pool", label: "Guard Pool", icon: Users, url: "/guards" },
+  { id: "rovers", label: "Rovers", icon: Car, url: "/rovers" },
+  { id: "pegasus", label: "Pegasus", icon: Bot, url: "/pegasus" },
 ];
 
 export function AppSidebar() {
@@ -54,8 +68,12 @@ export function AppSidebar() {
             <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Client
             </p>
-            <p className="text-sm font-semibold text-foreground">Dittmar Company</p>
-            <p className="text-xs text-muted-foreground">24 sites · Arlington, VA</p>
+            <p className="text-sm font-semibold text-foreground">
+              Dittmar Company
+            </p>
+            <p className="text-xs text-muted-foreground">
+              24 sites · Arlington, VA
+            </p>
           </div>
         )}
 
@@ -102,7 +120,9 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {displayName}
+              </p>
               <p className="text-xs text-muted-foreground">Manager</p>
             </div>
           )}

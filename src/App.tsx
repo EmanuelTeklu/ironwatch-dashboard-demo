@@ -4,17 +4,40 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { PegasusProvider, usePegasusContext } from "@/contexts/PegasusContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RealtimeProvider } from "@/components/RealtimeProvider";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import DemoSetup from "@/components/DemoSetup";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import Index from "./pages/Index";
 import CallOutsView from "./pages/CallOutsView";
 import GuardPoolView from "./pages/GuardPoolView";
 import LiveSimView from "./pages/LiveSimView";
+import RoverMapView from "./pages/RoverMapView";
+import PegasusFullView from "./pages/PegasusFullView";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// ---------------------------------------------------------------------------
+// DemoGate — in demo mode, require DemoConfig before showing dashboard
+// ---------------------------------------------------------------------------
+
+function DemoGate({ children }: { readonly children: React.ReactNode }) {
+  const { demoConfig, setDemoConfig } = usePegasusContext();
+
+  if (!isSupabaseConfigured && !demoConfig) {
+    return <DemoSetup onStart={setDemoConfig} />;
+  }
+
+  return <>{children}</>;
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -29,17 +52,23 @@ const App = () => (
               path="/*"
               element={
                 <ProtectedRoute>
-                  <RealtimeProvider>
-                    <DashboardLayout>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/callouts" element={<CallOutsView />} />
-                        <Route path="/guards" element={<GuardPoolView />} />
-                        <Route path="/simulation" element={<LiveSimView />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </DashboardLayout>
-                  </RealtimeProvider>
+                  <PegasusProvider>
+                    <DemoGate>
+                      <RealtimeProvider>
+                        <DashboardLayout>
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/callouts" element={<CallOutsView />} />
+                            <Route path="/guards" element={<GuardPoolView />} />
+                            <Route path="/rovers" element={<RoverMapView />} />
+                            <Route path="/pegasus" element={<PegasusFullView />} />
+                            <Route path="/simulation" element={<LiveSimView />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </DashboardLayout>
+                      </RealtimeProvider>
+                    </DemoGate>
+                  </PegasusProvider>
                 </ProtectedRoute>
               }
             />

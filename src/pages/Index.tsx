@@ -1,5 +1,5 @@
-import SitesView from "./SitesView";
+import TonightsBoardView from "./TonightsBoardView";
 
-const Index = () => <SitesView />;
-
-export default Index;
+export default function Index() {
+  return <TonightsBoardView />;
+}
