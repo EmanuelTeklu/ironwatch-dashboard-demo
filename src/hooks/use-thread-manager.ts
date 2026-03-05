@@ -8,6 +8,7 @@ import {
   updateThread,
   type PegasusThread,
 } from "@/lib/thread-types";
+import { buildDefaultThreads } from "@/lib/default-threads";
 
 // ---------------------------------------------------------------------------
 // localStorage persistence
@@ -19,9 +20,16 @@ const ACTIVE_THREAD_KEY = "ironwatch:pegasus-active-thread";
 function loadThreads(): readonly PegasusThread[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as PegasusThread[]) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw) as PegasusThread[];
+      if (parsed.length > 0) return parsed;
+    }
+    // No threads in storage — seed with defaults
+    const defaults = buildDefaultThreads();
+    saveThreads(defaults);
+    return defaults;
   } catch {
-    return [];
+    return buildDefaultThreads();
   }
 }
 
@@ -73,11 +81,13 @@ export interface UseThreadManagerReturn {
 }
 
 export function useThreadManager(): UseThreadManagerReturn {
-  const [threads, setThreadsState] = useState<readonly PegasusThread[]>(loadThreads);
-  const [activeThreadId, setActiveThreadIdState] = useState<string | null>(loadActiveThreadId);
+  const [threads, setThreadsState] =
+    useState<readonly PegasusThread[]>(loadThreads);
+  const [activeThreadId, setActiveThreadIdState] = useState<string | null>(
+    loadActiveThreadId,
+  );
 
-  const activeThread =
-    threads.find((t) => t.id === activeThreadId) ?? null;
+  const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
 
   const setThreads = useCallback((next: readonly PegasusThread[]) => {
     setThreadsState(next);

@@ -151,7 +151,7 @@ export function ActiveThreadPanel({
         <EditableTitle title={threadTitle} onRename={onRenameThread} />
       </div>
 
-      {/* Chat feed */}
+      {/* Chat feed (header hidden — thread title bar above serves as header) */}
       <PegasusFeed
         messages={messages}
         isStreaming={isStreaming}
@@ -159,6 +159,7 @@ export function ActiveThreadPanel({
         onSendMessage={onSendMessage}
         className="flex-1 rounded-none border-0"
         placeholder="Message Pegasus..."
+        hideHeader
       />
     </div>
   );

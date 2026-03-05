@@ -1,5 +1,7 @@
 // ---------------------------------------------------------------------------
-// PegasusFullView — full-screen threaded chat UI (no DashboardLayout)
+// PegasusFullView — operations center with live feed + chat sidebar
+// LEFT/CENTER: Live operational event feed from the simulation
+// RIGHT: Pegasus AI chat sidebar for asking operational questions
 // ---------------------------------------------------------------------------
 
 import { useState } from "react";
@@ -9,7 +11,18 @@ import {
   ActiveThreadPanel,
   EmptyState,
 } from "@/components/pegasus/ActiveThreadPanel";
+import { OperationsFeed } from "@/components/pegasus/OperationsFeed";
 import { PhoneEngagement } from "@/components/PhoneEngagement";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const CHAT_SIDEBAR_WIDTH = 420;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function PegasusFullView() {
   const {
@@ -24,6 +37,7 @@ export default function PegasusFullView() {
     isStreaming,
     streamingThinking,
     sendMessage,
+    simulation,
   } = usePegasusContext();
 
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -34,7 +48,7 @@ export default function PegasusFullView() {
 
   return (
     <div className="flex h-screen w-full bg-background">
-      {/* Thread sidebar */}
+      {/* Thread sidebar (narrow left) */}
       <ThreadSidebar
         threads={threads}
         activeThreadId={activeThreadId}
@@ -45,19 +59,38 @@ export default function PegasusFullView() {
         onOpenPhone={() => setPhoneOpen(true)}
       />
 
-      {/* Main panel */}
-      {activeThread ? (
-        <ActiveThreadPanel
-          threadTitle={activeThread.title}
+      {/* Center: Live operations feed */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <OperationsFeed
           messages={messages}
-          isStreaming={isStreaming}
-          streamingThinking={streamingThinking}
-          onSendMessage={sendMessage}
-          onRenameThread={(title) => renameThread(activeThread.id, title)}
+          simTime={simulation.simTime}
+          phase={simulation.phase}
+          isRunning={simulation.isRunning}
+          isPaused={simulation.isPaused}
+          onPause={simulation.pause}
+          onResume={simulation.resume}
+          onReset={simulation.reset}
         />
-      ) : (
-        <EmptyState onStart={handleCreateThread} />
-      )}
+      </div>
+
+      {/* Right sidebar: Pegasus chat */}
+      <div
+        className="flex flex-col border-l border-border bg-card/50"
+        style={{ width: CHAT_SIDEBAR_WIDTH, minWidth: CHAT_SIDEBAR_WIDTH }}
+      >
+        {activeThread ? (
+          <ActiveThreadPanel
+            threadTitle={activeThread.title}
+            messages={messages}
+            isStreaming={isStreaming}
+            streamingThinking={streamingThinking}
+            onSendMessage={sendMessage}
+            onRenameThread={(title) => renameThread(activeThread.id, title)}
+          />
+        ) : (
+          <EmptyState onStart={handleCreateThread} />
+        )}
+      </div>
 
       {/* Phone engagement modal */}
       <PhoneEngagement isOpen={phoneOpen} onClose={() => setPhoneOpen(false)} />

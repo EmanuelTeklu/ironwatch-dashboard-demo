@@ -85,7 +85,7 @@ interface PegasusContextValue {
 
 const PegasusContext = createContext<PegasusContextValue | null>(null);
 
-const DEFAULT_SIM_SPEED = 6;
+const DEFAULT_SIM_SPEED = 4;
 
 const DEFAULT_DEMO_CONFIG: DemoConfig = {
   managerName: "Manager",
@@ -130,19 +130,14 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
     speed: simSpeed,
   });
 
-  // Auto-start simulation on mount and ensure an operations thread exists
+  // Auto-start simulation on mount and select a thread if none active
   useEffect(() => {
     if (!autoStarted.current) {
       autoStarted.current = true;
 
-      // Create or reuse a "Tonight's Operations" thread for sim messages
-      const existingOpsThread = threadManager.threads.find(
-        (t) => t.title === "Tonight's Operations",
-      );
-      if (!existingOpsThread) {
-        threadManager.createThread("Tonight's Operations");
-      } else if (!threadManager.activeThreadId) {
-        threadManager.switchThread(existingOpsThread.id);
+      // Select the first thread if no active thread is set
+      if (!threadManager.activeThreadId && threadManager.threads.length > 0) {
+        threadManager.switchThread(threadManager.threads[0].id);
       }
 
       simulation.start();

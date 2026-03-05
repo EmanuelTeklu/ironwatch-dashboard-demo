@@ -44,6 +44,8 @@ interface PegasusFeedProps {
   readonly className?: string;
   readonly placeholder?: string;
   readonly contextLabel?: string;
+  /** When true, hides the top "Pegasus" header bar (e.g. when embedded in a panel that already has its own title) */
+  readonly hideHeader?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,10 +157,9 @@ function MessageBubble({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn("flex flex-col gap-0.5", isManager && "items-end")}
     >
       {/* Thinking section — shown above Pegasus messages when available */}
@@ -242,6 +243,7 @@ export function PegasusFeed({
   className,
   placeholder,
   contextLabel,
+  hideHeader = false,
 }: PegasusFeedProps) {
   const [input, setInput] = useState("");
   const [userScrolledUp, setUserScrolledUp] = useState(false);
@@ -313,59 +315,61 @@ export function PegasusFeed({
         className,
       )}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
-        <img
-          src="/pegasus.png"
-          alt="Pegasus"
-          className="h-5 w-5 object-contain"
-        />
-        <div className="flex flex-col">
-          <span className="text-xs font-semibold tracking-wide text-foreground">
-            Pegasus
-          </span>
-          {contextLabel && (
-            <span className="text-[10px] text-muted-foreground/70">
-              {contextLabel}
+      {/* Header (hidden when embedded in a panel with its own title bar) */}
+      {!hideHeader && (
+        <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
+          <img
+            src="/pegasus.png"
+            alt="Pegasus"
+            className="h-5 w-5 object-contain"
+          />
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold tracking-wide text-foreground">
+              Pegasus
             </span>
+            {contextLabel && (
+              <span className="text-[10px] text-muted-foreground/70">
+                {contextLabel}
+              </span>
+            )}
+          </div>
+          {isStreaming && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="ml-auto flex items-center gap-1.5"
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400" />
+              <span className="text-[10px] text-purple-400/80">streaming</span>
+            </motion.span>
           )}
         </div>
-        {isStreaming && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="ml-auto flex items-center gap-1.5"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400" />
-            <span className="text-[10px] text-purple-400/80">streaming</span>
-          </motion.span>
-        )}
-      </div>
+      )}
 
       {/* Message feed */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-3.5 py-3"
-        style={{ height: "100%" }}
+        style={{ minHeight: 0 }}
       >
-        <div className="space-y-3">
-          <AnimatePresence initial={false}>
-            {messages.map((msg, idx) => {
-              const isLast = idx === messages.length - 1;
-              const isActivelyStreaming =
-                isLast && isStreaming && msg.role !== "manager";
-              return (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                  isActiveStream={isActivelyStreaming}
-                  thinking={isActivelyStreaming ? streamingThinking : undefined}
-                />
-              );
-            })}
+        <div className="flex flex-col gap-3">
+          {messages.map((msg, idx) => {
+            const isLast = idx === messages.length - 1;
+            const isActivelyStreaming =
+              isLast && isStreaming && msg.role !== "manager";
+            return (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                isActiveStream={isActivelyStreaming}
+                thinking={isActivelyStreaming ? streamingThinking : undefined}
+              />
+            );
+          })}
 
-            {/* Thinking bubble: shown when streaming but no AI content yet */}
+          {/* Thinking bubble: shown when streaming but no AI content yet */}
+          <AnimatePresence>
             {showThinkingBubble && <ThinkingBubble key="__thinking__" />}
           </AnimatePresence>
           <div ref={bottomRef} className="h-px" />

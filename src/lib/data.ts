@@ -1471,7 +1471,9 @@ export const TONIGHT_SCHEDULE: ScheduleEntry[] = [
   { siteId: 1024, guardId: 2018, connectTeamsConfirmed: false }, // Hilton Arlington — Omar (unconfirmed, new guard)
 ];
 
-// --- SIM_TIMELINE (~42 events for tonight's simulation) -------------------
+// --- SIM_TIMELINE — consolidated events for tonight's simulation -----------
+// Events are spaced further apart and written at a summary/analytical level.
+// The live feed handles real-time details; Pegasus is the thinking layer.
 
 export const SIM_TIMELINE: SimEvent[] = [
   // --- Pre-shift (16:00-20:59) ---
@@ -1480,43 +1482,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     type: "shift-start",
     data: {
       message:
-        "Tonight's shift begins. 24 sites on the Dittmar contract. 5 guards unconfirmed in ConnectTeams.",
-    },
-  },
-  {
-    time: "16:01",
-    type: "confirmation-sent",
-    data: {
-      message: "Automated confirmation texts sent to 5 unconfirmed guards.",
-      unconfirmedIds: [2004, 2005, 2014, 2017, 2018],
-    },
-  },
-  {
-    time: "16:12",
-    type: "confirmation-reply",
-    guardId: 2004,
-    data: {
-      message:
-        "A. Lyles confirms via text: 'On my way, running a little behind.'",
-      sms: "On my way, running a little behind.",
-    },
-  },
-  {
-    time: "16:15",
-    type: "confirmation-reply",
-    guardId: 2014,
-    data: {
-      message: "T. Bullock confirms via text: 'Confirmed for tonight.'",
-      sms: "Confirmed for tonight.",
-    },
-  },
-  {
-    time: "16:18",
-    type: "confirmation-reply",
-    guardId: 2018,
-    data: {
-      message: "A. Omar confirms via text: 'Yes I will be there.'",
-      sms: "Yes I will be there.",
+        "Tonight's shift begins. 24 sites on the Dittmar contract. 5 guards unconfirmed in ConnectTeams. Automated confirmation texts sent.",
     },
   },
   {
@@ -1524,7 +1490,8 @@ export const SIM_TIMELINE: SimEvent[] = [
     type: "confirmation-reply",
     guardId: 2017,
     data: {
-      message: "J. Herrera confirms via text: 'Good to go.'",
+      message:
+        "4 of 5 unconfirmed guards have responded — Lyles, Bullock, Omar, and Herrera all confirmed. D. Nash remains unresponsive.",
       sms: "Good to go.",
     },
   },
@@ -1535,30 +1502,9 @@ export const SIM_TIMELINE: SimEvent[] = [
     siteId: 1022,
     data: {
       message:
-        "D. Nash has not responded. Pattern detected: called out 3 of last 5 Fridays. Risk level: HIGH.",
+        "D. Nash still unresponsive. Pattern detected: called out 3 of last 5 Fridays. Risk level HIGH. Pre-staging backup for Courtland Park.",
       pattern: "friday-callout",
       confidence: 0.85,
-    },
-  },
-  {
-    time: "17:00",
-    type: "cascade-start",
-    siteId: 1022,
-    data: {
-      message:
-        "Pre-staging backup for Courtland Park. Analyzing available guard pool for Nash's site.",
-      reason: "proactive-pattern",
-    },
-  },
-  {
-    time: "17:01",
-    type: "cascade-text-sent",
-    siteId: 1022,
-    guardId: 2001,
-    data: {
-      message:
-        "Texting A. Gueye (GRS 91, 4 visits to Courtland Park area): 'Are you available to cover Courtland Park tonight 21:00-05:00 if needed?'",
-      sms: "Are you available to cover Courtland Park tonight 21:00-05:00 if needed?",
     },
   },
   {
@@ -1567,19 +1513,10 @@ export const SIM_TIMELINE: SimEvent[] = [
     siteId: 1022,
     guardId: 2001,
     data: {
-      message: "A. Gueye responds: 'Yes, I can be there. Just let me know.'",
+      message:
+        "Backup secured for Courtland Park. A. Gueye (GRS 91, 4 site visits) confirmed standby. Awaiting Nash confirmation by 20:00.",
       sms: "Yes, I can be there. Just let me know.",
       accepted: true,
-    },
-  },
-  {
-    time: "17:06",
-    type: "pattern-flag",
-    guardId: 2005,
-    siteId: 1022,
-    data: {
-      message:
-        "Backup secured for Courtland Park. A. Gueye on standby. Awaiting manager approval to activate if Nash doesn't confirm by 20:00.",
     },
   },
   {
@@ -1589,7 +1526,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     siteId: 1022,
     data: {
       message:
-        "D. Nash texts: 'Not feeling well tonight, sorry.' Callout confirmed as predicted.",
+        "D. Nash confirms out: 'Not feeling well tonight, sorry.' Callout matched predicted pattern. A. Gueye activated from standby — effective fill time: 1 minute.",
       sms: "Not feeling well tonight, sorry.",
       reason: "sick",
     },
@@ -1601,7 +1538,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     guardId: 2001,
     data: {
       message:
-        "Courtland Park covered. A. Gueye activated from standby. Pre-staged 3 hours ago. Effective fill time: 1 minute.",
+        "Courtland Park covered. Pre-staged 3 hours ago. This is the fastest proactive fill this quarter.",
       fillMinutes: 1,
     },
   },
@@ -1615,84 +1552,31 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
   {
-    time: "21:03",
-    type: "therms-checkin",
-    data: {
-      message: "12 of 24 guards have checked in via Therms.",
-      checkedIn: 12,
-      total: 24,
-    },
-  },
-  {
-    time: "21:07",
-    type: "therms-checkin",
-    data: {
-      message: "18 of 24 guards have checked in via Therms.",
-      checkedIn: 18,
-      total: 24,
-    },
-  },
-  {
     time: "21:10",
     type: "therms-checkin",
     data: {
-      message: "22 of 24 guards have checked in. Waiting on 2.",
+      message:
+        "22 of 24 guards checked in. A. Al Dossary (Randolph Towers) and 1 other still pending.",
       checkedIn: 22,
       total: 24,
     },
   },
   {
-    time: "21:14",
-    type: "therms-late",
-    guardId: 2016,
-    siteId: 1010,
-    data: {
-      message:
-        "A. Al Dossary at Randolph Towers has not started patrol. Due at 21:15. This is their 3rd late start this week.",
-      lateStartCount: 3,
-    },
-  },
-  {
-    time: "21:15",
-    type: "therms-checkin",
-    data: {
-      message:
-        "23 of 24 guards checked in. A. Al Dossary (Randolph Towers) still pending.",
-      checkedIn: 23,
-      total: 24,
-    },
-  },
-  {
-    time: "21:19",
-    type: "therms-patrol",
-    guardId: 2016,
-    siteId: 1010,
-    data: {
-      message:
-        "A. Al Dossary begins patrol at Randolph Towers. 4 minutes late.",
-    },
-  },
-  {
     time: "21:20",
     type: "therms-checkin",
-    data: { message: "All 24 sites checked in.", checkedIn: 24, total: 24 },
-  },
-  {
-    time: "21:31",
-    type: "pattern-flag",
-    guardId: 2016,
-    siteId: 1010,
     data: {
       message:
-        "Performance pattern: A. Al Dossary has been late 3 times this week at Randolph Towers. Therms avg check-in: 7 min. Patrol completion rate: 78%. Consider reassignment or counseling.",
-      thermsAvg: 7,
-      patrolRate: 0.78,
+        "All 24 sites checked in. A. Al Dossary started 4 minutes late — 3rd late start this week. Patrol rate 78%. Consider reassignment.",
+      checkedIn: 24,
+      total: 24,
     },
   },
   {
     time: "21:45",
     type: "all-clear",
-    data: { message: "All 24 sites active and patrolling. No open issues." },
+    data: {
+      message: "All 24 sites active and patrolling. No open issues.",
+    },
   },
 
   // --- First mid-shift callout ---
@@ -1703,51 +1587,9 @@ export const SIM_TIMELINE: SimEvent[] = [
     siteId: 1002,
     data: {
       message:
-        "M. Reyes calls out from Clarendon Gate: 'Car won't start, I'm stuck at the site but I can't get home and my ride is here.' Site will be uncovered.",
+        "M. Reyes calls out from Clarendon Gate — car trouble. Pattern flag: 2nd 'car trouble' in 4 weeks. Cascade initiated for Tier B unarmed site.",
       sms: "Car won't start, I'm stuck at the site but I can't get home and my ride is here.",
       reason: "car trouble",
-    },
-  },
-  {
-    time: "22:47",
-    type: "pattern-flag",
-    guardId: 2008,
-    siteId: 1002,
-    data: {
-      message:
-        "Pattern detected: M. Reyes — 2nd 'car trouble' callout in 4 weeks. Previous: Jan 31, Feb 21. Reliability flag raised.",
-    },
-  },
-  {
-    time: "22:48",
-    type: "cascade-start",
-    siteId: 1002,
-    data: {
-      message:
-        "Cascade initiated for Clarendon Gate (unarmed, Tier B). Analyzing available pool: 3 off-duty guards within overtime limits with site familiarity.",
-      reason: "mid-shift-callout",
-    },
-  },
-  {
-    time: "22:48",
-    type: "cascade-text-sent",
-    siteId: 1002,
-    guardId: 2009,
-    data: {
-      message:
-        "Texting E. Teklu (GRS 93, off-duty, 30 hrs this week, Clarendon Gate area familiarity): 'Clarendon Gate needs coverage ASAP. Can you come in? 23:00-05:00.'",
-      sms: "Clarendon Gate needs coverage ASAP. Can you come in? 23:00-05:00.",
-    },
-  },
-  {
-    time: "22:51",
-    type: "cascade-reply",
-    siteId: 1002,
-    guardId: 2009,
-    data: {
-      message: "E. Teklu accepts: 'On my way. Be there in 20.'",
-      sms: "On my way. Be there in 20.",
-      accepted: true,
     },
   },
   {
@@ -1757,7 +1599,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     guardId: 2009,
     data: {
       message:
-        "Clarendon Gate covered. E. Teklu en route, ETA 23:11. Fill time: 3 minutes from callout to acceptance.",
+        "Clarendon Gate covered. E. Teklu (GRS 93) accepted, ETA 23:11. Fill time: 3 minutes. Reyes reliability flag raised for review.",
       fillMinutes: 3,
     },
   },
@@ -1767,8 +1609,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     guardId: 2009,
     siteId: 1002,
     data: {
-      message:
-        "E. Teklu checked in at Clarendon Gate via Therms. Site fully operational.",
+      message: "E. Teklu checked in at Clarendon Gate. Site fully operational.",
     },
   },
 
@@ -1778,15 +1619,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     type: "all-clear",
     data: {
       message:
-        "Midnight check: 24/24 sites covered. No open issues. Rover patrol status: all 4 active.",
-    },
-  },
-  {
-    time: "00:45",
-    type: "therms-patrol",
-    data: {
-      message:
-        "Patrol completion rates at 00:45 — 22 sites at 100%, 1 site at 87% (Randolph Towers), 1 site at 93% (Wildwood Park).",
+        "Midnight check: 24/24 sites covered. All 4 rovers active. No open issues.",
     },
   },
 
@@ -1798,64 +1631,8 @@ export const SIM_TIMELINE: SimEvent[] = [
     siteId: 1019,
     data: {
       message:
-        "J. Farmer calls out from Wildwood Towers: 'Family emergency, I have to leave.' Site will be uncovered.",
+        "J. Farmer calls out from Wildwood Towers — family emergency. Cascade initiated. Limited pool at 01:15 — 2 candidates available.",
       reason: "family emergency",
-    },
-  },
-  {
-    time: "01:15",
-    type: "cascade-start",
-    siteId: 1019,
-    data: {
-      message:
-        "Cascade initiated for Wildwood Towers (unarmed, Tier B). Analyzing pool — limited options at 01:15. 2 candidates available.",
-      reason: "mid-shift-callout",
-    },
-  },
-  {
-    time: "01:16",
-    type: "cascade-text-sent",
-    siteId: 1019,
-    guardId: 2014,
-    data: {
-      message:
-        "Texting T. Bullock (GRS 80, 11 visits to Wildwood Towers, off-duty): 'Emergency coverage needed at Wildwood Towers. Can you come in? 01:30-05:00.'",
-      sms: "Emergency coverage needed at Wildwood Towers. Can you come in? 01:30-05:00.",
-    },
-  },
-  {
-    time: "01:19",
-    type: "cascade-reply",
-    siteId: 1019,
-    guardId: 2014,
-    data: {
-      message:
-        "T. Bullock declines: 'Sorry, I just got home from Thomas Court shift.'",
-      sms: "Sorry, I just got home from Thomas Court shift.",
-      accepted: false,
-    },
-  },
-  {
-    time: "01:20",
-    type: "cascade-text-sent",
-    siteId: 1019,
-    guardId: 2008,
-    data: {
-      message:
-        "Texting M. Reyes (GRS 78, 5 visits to Wildwood Towers — note: called out earlier tonight but was at-site issue, may be available): 'Wildwood Towers needs coverage 01:30-05:00. Available?'",
-      sms: "Wildwood Towers needs coverage 01:30-05:00. Available?",
-    },
-  },
-  {
-    time: "01:23",
-    type: "cascade-reply",
-    siteId: 1019,
-    guardId: 2008,
-    data: {
-      message:
-        "M. Reyes accepts: 'Yeah, my ride got me home. I can head to Wildwood. Give me 25 min.'",
-      sms: "Yeah, my ride got me home. I can head to Wildwood. Give me 25 min.",
-      accepted: true,
     },
   },
   {
@@ -1865,7 +1642,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     guardId: 2008,
     data: {
       message:
-        "Wildwood Towers covered. M. Reyes en route, ETA ~01:48. Fill time: 8 minutes from callout to acceptance. Rover Sgt. Torres dispatched for interim coverage.",
+        "Wildwood Towers covered. T. Bullock declined (just off shift). M. Reyes accepted, ETA ~01:48. Fill time: 8 minutes. Rover Sgt. Torres dispatched for interim.",
       fillMinutes: 8,
     },
   },
@@ -1876,7 +1653,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     siteId: 1019,
     data: {
       message:
-        "M. Reyes checked in at Wildwood Towers via Therms. Sgt. Torres released back to West zone patrol.",
+        "M. Reyes checked in at Wildwood Towers. Sgt. Torres released to West zone patrol.",
     },
   },
 
@@ -1886,7 +1663,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     type: "all-clear",
     data: {
       message:
-        "03:00 check: 24/24 sites covered. 2 callouts tonight, both resolved. Average fill time: 5.5 minutes.",
+        "03:00 check: 24/24 sites covered. 3 callouts tonight, all resolved. Average fill time: 4 minutes.",
     },
   },
   {
@@ -1894,7 +1671,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     type: "therms-patrol",
     data: {
       message:
-        "Final patrol sweep data: 23 sites at 95%+ patrol completion. Randolph Towers at 82% (A. Al Dossary — flagged for review).",
+        "Final patrol data: 23 sites at 95%+ completion. Randolph Towers at 82% (Al Dossary — flagged).",
     },
   },
 
@@ -1904,7 +1681,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     type: "night-summary",
     data: {
       message:
-        "Night shift complete. 24/24 sites covered through end of shift. 2 callouts resolved. 1 proactive pre-stage (Nash/Courtland Park). Average fill time: 4 minutes. Key flags: Nash Friday pattern (4 of 6), Reyes car trouble (3rd time), Al Dossary late starts (needs review).",
+        "Night shift complete. 24/24 sites covered through end of shift. 3 callouts resolved (1 proactive pre-stage). Average fill time: 4 minutes. Key flags: Nash Friday pattern (4/6), Reyes car trouble (3rd incident), Al Dossary late starts (review needed).",
       stats: {
         sitesTotal: 24,
         sitesCovered: 24,
