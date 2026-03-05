@@ -4,7 +4,14 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { PegasusFeed } from "@/components/PegasusFeed";
 import { usePegasusContext } from "@/contexts/PegasusContext";
 import { useLocation } from "react-router-dom";
-import { Clock, MessageSquare, PanelRightClose, Pause, Play, RotateCcw } from "lucide-react";
+import {
+  Clock,
+  MessageSquare,
+  PanelRightClose,
+  Pause,
+  Play,
+  RotateCcw,
+} from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -127,7 +134,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [time, setTime] = useState(new Date());
   const [pegasusOpen, setPegasusOpen] = useState(readPanelPref);
   const location = useLocation();
-  const { messages, isStreaming, sendMessage, simulation } = usePegasusContext();
+  const { messages, isStreaming, streamingThinking, sendMessage, simulation } =
+    usePegasusContext();
 
   useEffect(() => {
     const i = setInterval(() => setTime(new Date()), 1000);
@@ -154,7 +162,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div>
-                <h1 className="text-sm font-semibold text-foreground">{title}</h1>
+                <h1 className="text-sm font-semibold text-foreground">
+                  {title}
+                </h1>
                 <p className="text-[11px] text-muted-foreground">
                   Dittmar Company ·{" "}
                   {time.toLocaleDateString("en-US", {
@@ -181,7 +191,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <button
                 onClick={togglePanel}
                 className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground"
-                title={pegasusOpen ? "Close Pegasus panel" : "Open Pegasus panel"}
+                title={
+                  pegasusOpen ? "Close Pegasus panel" : "Open Pegasus panel"
+                }
               >
                 {pegasusOpen ? (
                   <PanelRightClose className="h-3.5 w-3.5" />
@@ -215,6 +227,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <PegasusFeed
                   messages={messages}
                   isStreaming={isStreaming}
+                  streamingThinking={streamingThinking}
                   onSendMessage={sendMessage}
                   className="flex-1 rounded-none border-0"
                 />

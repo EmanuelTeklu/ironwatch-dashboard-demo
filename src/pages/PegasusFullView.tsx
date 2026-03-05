@@ -3,7 +3,8 @@ import { usePegasusContext } from "@/contexts/PegasusContext";
 import { PegasusFeed } from "@/components/PegasusFeed";
 
 export default function PegasusFullView() {
-  const { messages, isStreaming, sendMessage } = usePegasusContext();
+  const { messages, isStreaming, streamingThinking, sendMessage } =
+    usePegasusContext();
 
   return (
     <div className="flex flex-col h-full">
@@ -26,6 +27,7 @@ export default function PegasusFullView() {
       <PegasusFeed
         messages={messages}
         isStreaming={isStreaming}
+        streamingThinking={streamingThinking}
         onSendMessage={sendMessage}
         className="flex-1"
       />
