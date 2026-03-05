@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { PegasusFeed } from "@/components/PegasusFeed";
@@ -29,6 +29,36 @@ const VIEW_TITLES: Record<string, string> = {
 };
 
 const PANEL_WIDTH = 380;
+
+// ---------------------------------------------------------------------------
+// View-specific Pegasus context strings
+// ---------------------------------------------------------------------------
+
+const VIEW_CONTEXTS: Record<string, string> = {
+  "/": "You are assisting the manager while they view Tonight's Board — a live grid of 24 Dittmar sites showing guard assignments, ConnectTeams confirmation status, Therms check-in status, and one-tap calling. Focus on real-time site monitoring, flag any issues, and help the manager stay on top of all 24 sites.",
+  "/callouts":
+    "You are assisting the manager while they view the Call-Outs panel — showing active and historical callouts, fill times, cost impact, and response comparisons. Focus on helping the manager fill uncovered shifts, run the cascade process, and optimize response times.",
+  "/guards":
+    "You are assisting the manager while they view the Guard Pool — showing all guards with GRS scores, hours, site familiarity, and availability. Help with guard selection, coverage questions, and workforce insights.",
+  "/rovers":
+    "You are assisting the manager while they view the Rover Map — showing 4 rovers with zone assignments and patrol status. Help with rover coordination and coverage gap management.",
+};
+
+const VIEW_CONTEXT_LABELS: Record<string, string> = {
+  "/": "Watching Tonight's Board",
+  "/callouts": "Monitoring Call-Outs",
+  "/guards": "Reviewing Guard Pool",
+  "/rovers": "Tracking Rovers",
+  "/pegasus": "General Operations",
+};
+
+const VIEW_PLACEHOLDERS: Record<string, string> = {
+  "/": "Ask about site status, check-ins...",
+  "/callouts": "Ask about callouts, fill coverage...",
+  "/guards": "Ask about guard availability, GRS...",
+  "/rovers": "Ask about rover routes, zones...",
+  "/pegasus": "Ask Pegasus anything...",
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -134,13 +164,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [time, setTime] = useState(new Date());
   const [pegasusOpen, setPegasusOpen] = useState(readPanelPref);
   const location = useLocation();
-  const { messages, isStreaming, streamingThinking, sendMessage, simulation } =
-    usePegasusContext();
+  const {
+    messages,
+    isStreaming,
+    streamingThinking,
+    sendMessage,
+    simulation,
+    setViewContext,
+  } = usePegasusContext();
 
   useEffect(() => {
     const i = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(i);
   }, []);
+
+  // Sync view context to PegasusContext whenever the route changes
+  useEffect(() => {
+    const ctx = VIEW_CONTEXTS[location.pathname] ?? "";
+    setViewContext(ctx);
+  }, [location.pathname, setViewContext]);
 
   const togglePanel = useCallback(() => {
     setPegasusOpen((prev) => {
@@ -151,6 +193,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, []);
 
   const title = VIEW_TITLES[location.pathname] || "Dashboard";
+
+  const pegasusPlaceholder = useMemo(
+    () => VIEW_PLACEHOLDERS[location.pathname] ?? "Ask Pegasus anything...",
+    [location.pathname],
+  );
+
+  const pegasusContextLabel = useMemo(
+    () => VIEW_CONTEXT_LABELS[location.pathname] ?? "",
+    [location.pathname],
+  );
 
   return (
     <SidebarProvider>
@@ -230,6 +282,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   streamingThinking={streamingThinking}
                   onSendMessage={sendMessage}
                   className="flex-1 rounded-none border-0"
+                  placeholder={pegasusPlaceholder}
+                  contextLabel={pegasusContextLabel}
                 />
               </aside>
             )}

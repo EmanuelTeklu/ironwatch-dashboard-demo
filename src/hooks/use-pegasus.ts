@@ -7,6 +7,7 @@ import type { PegasusMessage, PegasusMessageType } from "@/lib/types";
 
 interface UsePegasusOptions {
   context?: Record<string, unknown>;
+  viewContext?: string;
 }
 
 interface UsePegasusReturn {
@@ -84,7 +85,7 @@ function parseSseLine(line: string): SseChunk | null {
 // ---------------------------------------------------------------------------
 
 export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
-  const { context } = options;
+  const { context, viewContext } = options;
 
   const [messages, setMessages] = useState<PegasusMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -163,6 +164,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
           body: JSON.stringify({
             messages: historyRef.current,
             context,
+            viewContext,
           }),
         });
 
@@ -267,7 +269,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         setStreamingThinking("");
       }
     },
-    [context],
+    [context, viewContext],
   );
 
   // -------------------------------------------------------------------------
