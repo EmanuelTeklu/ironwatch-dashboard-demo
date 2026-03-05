@@ -1,23 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { usePegasusContext } from "@/contexts/PegasusContext";
 import { useSites } from "@/hooks/use-sites";
 import { useGuards } from "@/hooks/use-guards";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useRovers } from "@/hooks/use-rovers";
+import { useThermsScans } from "@/hooks/use-therms-scan";
 import { QueryLoading, QueryError } from "@/components/QueryState";
 import { StatCard } from "@/components/StatCard";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Phone, CheckCircle, Clock, Shield, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RoverStrip } from "@/components/board/RoverStrip";
+import { GuardCard } from "@/components/board/GuardCard";
+import { GuardDetailPanel } from "@/components/board/GuardDetailPanel";
+import { ScanComplianceSummary } from "@/components/board/ScanComplianceSummary";
 import type { Site, Guard, ScheduleEntry, Rover } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type BoardFilter = "all" | "armed" | "at-risk";
+type BoardFilter = "all" | "armed" | "at-risk" | "overdue";
 
 interface BoardRow {
   readonly site: Site;
@@ -62,13 +63,6 @@ function buildBoardRows(
   });
 }
 
-function getRowBorderColor(row: BoardRow): string {
-  if (!row.covered) return "border-l-destructive";
-  if (row.confirmed && row.checkedIn) return "border-l-success";
-  if (!row.confirmed) return "border-l-warning";
-  return "border-l-border";
-}
-
 function getRowStatus(
   row: BoardRow,
 ): "confirmed" | "unconfirmed" | "uncovered" {
@@ -80,12 +74,17 @@ function getRowStatus(
 function filterRows(
   rows: readonly BoardRow[],
   filter: BoardFilter,
+  overdueGuardIds: ReadonlySet<number>,
 ): readonly BoardRow[] {
   switch (filter) {
     case "armed":
       return rows.filter((r) => r.site.armed);
     case "at-risk":
       return rows.filter((r) => !r.confirmed || !r.covered);
+    case "overdue":
+      return rows.filter(
+        (r) => r.guard !== null && overdueGuardIds.has(r.guard.id),
+      );
     default:
       return rows;
   }
@@ -103,126 +102,33 @@ function sortRows(rows: readonly BoardRow[]): readonly BoardRow[] {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-interface PhoneButtonProps {
-  readonly phone: string | undefined;
-  readonly label: string;
+/** Extract unique guard IDs from the schedule. */
+function extractGuardIds(schedule: readonly ScheduleEntry[]): readonly number[] {
+  const seen = new Set<number>();
+  const ids: number[] = [];
+  for (const entry of schedule) {
+    if (!seen.has(entry.guardId)) {
+      seen.add(entry.guardId);
+      ids.push(entry.guardId);
+    }
+  }
+  return ids;
 }
 
-function PhoneButton({ phone, label }: PhoneButtonProps) {
-  if (!phone) return null;
-
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-7 gap-1 px-2 text-xs"
-      asChild
-    >
-      <a href={`tel:${phone}`} aria-label={`Call ${label}`}>
-        <Phone className="h-3 w-3" />
-        {label}
-      </a>
-    </Button>
-  );
-}
-
-interface SiteRowCardProps {
-  readonly row: BoardRow;
-  readonly roverPhone: string | undefined;
-}
-
-function SiteRowCard({ row, roverPhone }: SiteRowCardProps) {
-  const { site, guard, confirmed } = row;
-  const borderColor = getRowBorderColor(row);
-  const status = getRowStatus(row);
-
-  return (
-    <div
-      className={cn(
-        "rounded-lg border-l-4 border border-border bg-card px-4 py-3 transition-colors hover:border-border/80",
-        borderColor,
-      )}
-    >
-      {/* Top row: site info + badges */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              {site.name}
-            </span>
-            {site.armed && (
-              <Badge
-                variant="outline"
-                className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0"
-              >
-                Armed
-              </Badge>
-            )}
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-[10px] px-1.5 py-0",
-                site.tier === "A"
-                  ? "border-primary/30 bg-primary/10 text-primary"
-                  : "border-muted-foreground/30 bg-muted text-muted-foreground",
-              )}
-            >
-              {site.tier}
-            </Badge>
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">{site.addr}</p>
-        </div>
-
-        {/* Status indicator */}
-        <div className="flex-shrink-0">
-          {status === "uncovered" && (
-            <Badge variant="destructive" className="text-[10px]">
-              <AlertTriangle className="mr-1 h-3 w-3" />
-              Uncovered
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Guard assignment + CT status */}
-      <div className="mt-2 flex items-center gap-2">
-        {guard ? (
-          <>
-            <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm text-foreground">{guard.name}</span>
-            {confirmed ? (
-              <CheckCircle className="h-3.5 w-3.5 text-success" />
-            ) : (
-              <Clock className="h-3.5 w-3.5 text-warning" />
-            )}
-            <span
-              className={cn(
-                "text-[10px]",
-                confirmed ? "text-success" : "text-warning",
-              )}
-            >
-              {confirmed ? "CT Confirmed" : "CT Pending"}
-            </span>
-          </>
-        ) : (
-          <span className="text-sm italic text-muted-foreground">
-            No guard assigned
-          </span>
-        )}
-      </div>
-
-      {/* Phone buttons */}
-      <div className="mt-2 flex gap-1">
-        <PhoneButton phone={site.phone} label="Site" />
-        <PhoneButton phone={guard?.phone} label="Guard" />
-        <PhoneButton phone={roverPhone} label="Rover" />
-      </div>
-    </div>
-  );
+/** Build a map from guardId -> site for quick lookup. */
+function buildGuardSiteMap(
+  schedule: readonly ScheduleEntry[],
+  sites: readonly Site[],
+): ReadonlyMap<number, Site> {
+  const siteMap = new Map(sites.map((s) => [s.id, s]));
+  const result = new Map<number, Site>();
+  for (const entry of schedule) {
+    const site = siteMap.get(entry.siteId);
+    if (site) {
+      result.set(entry.guardId, site);
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -234,6 +140,7 @@ interface FilterPillsProps {
   readonly onFilterChange: (f: BoardFilter) => void;
   readonly atRiskCount: number;
   readonly armedCount: number;
+  readonly overdueCount: number;
   readonly totalCount: number;
 }
 
@@ -242,6 +149,7 @@ function FilterPills({
   onFilterChange,
   atRiskCount,
   armedCount,
+  overdueCount,
   totalCount,
 }: FilterPillsProps) {
   const pills: readonly {
@@ -252,10 +160,11 @@ function FilterPills({
     { id: "all", label: `All ${totalCount}` },
     { id: "armed", label: `Armed ${armedCount}` },
     { id: "at-risk", label: `At Risk ${atRiskCount}`, variant: "destructive" },
+    { id: "overdue", label: `Overdue ${overdueCount}`, variant: "destructive" },
   ];
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {pills.map((p) => (
         <button
           key={p.id}
@@ -372,11 +281,37 @@ function TonightsBoardContent({
 }: TonightsBoardContentProps) {
   const { simulation } = usePegasusContext();
 
+  // Detail panel state
+  const [selectedGuardId, setSelectedGuardId] = useState<number | null>(null);
+
+  // Extract unique guard IDs for THERMS simulation
+  const guardIds = useMemo(() => extractGuardIds(schedule), [schedule]);
+
+  // THERMS scan simulation
+  const { scanStates, allScans, isRunning, start } = useThermsScans(guardIds);
+
+  // Auto-start scan simulation on mount
+  useEffect(() => {
+    if (!isRunning) {
+      start();
+    }
+    // Only start once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Build board rows
   const boardRows = useMemo(
     () => buildBoardRows(sites, guards, schedule, simulation.siteStatuses),
     [sites, guards, schedule, simulation.siteStatuses],
   );
 
+  // Guard -> site mapping
+  const guardSiteMap = useMemo(
+    () => buildGuardSiteMap(schedule, sites),
+    [schedule, sites],
+  );
+
+  // Computed counts
   const confirmedCount = useMemo(
     () => boardRows.filter((r) => r.confirmed).length,
     [boardRows],
@@ -397,13 +332,52 @@ function TonightsBoardContent({
     [boardRows],
   );
 
+  // Overdue guard IDs (scan status === "overdue")
+  const overdueGuardIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const [guardId, state] of scanStates) {
+      if (state.status === "overdue") {
+        ids.add(guardId);
+      }
+    }
+    return ids;
+  }, [scanStates]);
+
+  const overdueCount = overdueGuardIds.size;
+
+  // Filtered + sorted rows
   const filteredRows = useMemo(
-    () => sortRows(filterRows(boardRows, filter)),
-    [boardRows, filter],
+    () => sortRows(filterRows(boardRows, filter, overdueGuardIds)),
+    [boardRows, filter, overdueGuardIds],
   );
 
-  // Use the first rover's phone as the default rover contact
-  const defaultRoverPhone = rovers.length > 0 ? rovers[0].phone : undefined;
+  // Selected guard data for detail panel
+  const selectedGuard = useMemo(
+    () => (selectedGuardId !== null
+      ? guards.find((g) => g.id === selectedGuardId) ?? null
+      : null),
+    [guards, selectedGuardId],
+  );
+
+  const selectedSite = useMemo(
+    () => (selectedGuardId !== null
+      ? guardSiteMap.get(selectedGuardId) ?? null
+      : null),
+    [guardSiteMap, selectedGuardId],
+  );
+
+  const selectedScanState = selectedGuardId !== null
+    ? scanStates.get(selectedGuardId)
+    : undefined;
+
+  // Handlers
+  const handleCardClick = useCallback((guardId: number) => {
+    setSelectedGuardId(guardId);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedGuardId(null);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -415,36 +389,61 @@ function TonightsBoardContent({
         <StatCard label="At Risk" value={atRiskCount} />
       </div>
 
+      {/* THERMS scan compliance summary */}
+      <ScanComplianceSummary
+        scanStates={scanStates}
+        totalScans={allScans.length}
+      />
+
       {/* Filter pills */}
       <FilterPills
         filter={filter}
         onFilterChange={onFilterChange}
         atRiskCount={atRiskCount}
         armedCount={armedCount}
+        overdueCount={overdueCount}
         totalCount={sites.length}
       />
 
       <RoverStrip rovers={rovers} />
 
-      {/* Site list */}
-      <div className="space-y-2">
-        {filteredRows.map((row) => (
-          <SiteRowCard
-            key={row.site.id}
-            row={row}
-            roverPhone={defaultRoverPhone}
-          />
-        ))}
+      {/* Guard card grid */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredRows.map((row) => {
+          if (!row.guard) return null;
+
+          const guardId = row.guard.id;
+          const scanState = scanStates.get(guardId);
+
+          return (
+            <GuardCard
+              key={row.site.id}
+              guard={row.guard}
+              scanState={scanState}
+              siteName={row.site.name}
+              onClick={() => handleCardClick(guardId)}
+            />
+          );
+        })}
       </div>
 
       {/* Empty state */}
       {filteredRows.length === 0 && (
         <div className="flex items-center justify-center py-12">
           <p className="text-sm text-muted-foreground">
-            No sites match the current filter.
+            No guards match the current filter.
           </p>
         </div>
       )}
+
+      {/* Guard detail slide-out panel */}
+      <GuardDetailPanel
+        guard={selectedGuard}
+        site={selectedSite}
+        scanState={selectedScanState}
+        open={selectedGuardId !== null}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 }
