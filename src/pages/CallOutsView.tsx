@@ -1,16 +1,26 @@
 import { useState } from "react";
 import { useCallOuts } from "@/hooks/use-call-outs";
+import { CALLOUT_HISTORY } from "@/lib/data";
 import { QueryLoading, QueryError } from "@/components/QueryState";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Zap } from "lucide-react";
+import type { CallOut } from "@/lib/types";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const COST_PER_HOUR_ARMED = 85;
+const COST_PER_HOUR_UNARMED = 55;
+
+function calloutCost(co: CallOut): number {
+  return co.armed ? COST_PER_HOUR_ARMED : COST_PER_HOUR_UNARMED;
+}
+
 export default function CallOutsView() {
   const [dayFilter, setDayFilter] = useState("All");
-  const { data: callOuts, isLoading, error, refetch } = useCallOuts();
+  const [rangeView, setRangeView] = useState<"week" | "8weeks">("week");
+  const { data: weekCallOuts, isLoading, error, refetch } = useCallOuts();
 
   if (isLoading) {
     return <QueryLoading message="Loading call-outs..." />;
@@ -20,47 +30,107 @@ export default function CallOutsView() {
     return <QueryError message={error.message} onRetry={refetch} />;
   }
 
-  if (!callOuts || callOuts.length === 0) {
+  if (!weekCallOuts || weekCallOuts.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <StatCard label="Total Call-Outs" value={0} />
           <StatCard label="Avg Fill Time" value="--" />
           <StatCard label="Unresolved" value={0} />
           <StatCard label="Armed Call-Outs" value={0} />
+          <StatCard label="Est. Cost Impact" value="$0" />
         </div>
         <p className="text-center text-sm text-muted-foreground py-8">No call-outs recorded.</p>
       </div>
     );
   }
 
+  const callOuts = rangeView === "week" ? weekCallOuts : CALLOUT_HISTORY;
+
   const filtered = dayFilter === "All" ? callOuts : callOuts.filter((c) => c.day === dayFilter);
   const resolvedWithFill = callOuts.filter((c) => c.fill != null);
   const avgFill =
     resolvedWithFill.length > 0
       ? Math.round(
-          resolvedWithFill.reduce((a, c) => a + (c.fill ?? 0), 0) / resolvedWithFill.length
+          resolvedWithFill.reduce((a, c) => a + (c.fill ?? 0), 0) / resolvedWithFill.length,
         )
       : 0;
   const unresolvedCount = callOuts.filter((c) => !c.resolved).length;
   const armedCount = callOuts.filter((c) => c.armed).length;
+  const totalCost = callOuts.reduce((sum, co) => sum + calloutCost(co), 0);
 
   const maxBar = Math.max(...DAYS.map((d) => callOuts.filter((c) => c.day === d).length), 1);
 
   return (
     <div className="space-y-6">
+      {/* Range toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            setRangeView("week");
+            setDayFilter("All");
+          }}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            rangeView === "week"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          This Week
+        </button>
+        <button
+          onClick={() => {
+            setRangeView("8weeks");
+            setDayFilter("All");
+          }}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            rangeView === "8weeks"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          8 Weeks
+        </button>
+      </div>
+
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="Total Call-Outs" value={callOuts.length} />
         <StatCard label="Avg Fill Time" value={`${avgFill}m`} />
         <StatCard label="Unresolved" value={unresolvedCount} />
         <StatCard label="Armed Call-Outs" value={armedCount} />
+        <StatCard label="Est. Cost Impact" value={`$${totalCost.toLocaleString()}`} />
+      </div>
+
+      {/* Response time comparison */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Response Time Comparison
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+            <Clock className="h-5 w-5 text-warning shrink-0" />
+            <div>
+              <p className="text-xs text-muted-foreground">Manual avg</p>
+              <p className="text-lg font-bold text-warning">34 min</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <Zap className="h-5 w-5 text-primary shrink-0" />
+            <div>
+              <p className="text-xs text-muted-foreground">Pegasus avg</p>
+              <p className="text-lg font-bold text-primary">5 min</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Bar chart */}
       <div className="rounded-lg border border-border bg-card p-4">
         <p className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Weekly Distribution
+          {rangeView === "week" ? "Weekly" : "8-Week"} Distribution
         </p>
         <div className="flex items-end gap-3 h-32">
           {DAYS.map((d) => {
@@ -80,8 +150,8 @@ export default function CallOutsView() {
                       active
                         ? "bg-primary"
                         : isWknd
-                        ? "bg-warning/40"
-                        : "bg-secondary"
+                          ? "bg-warning/40"
+                          : "bg-secondary",
                     )}
                     style={{ height: `${(cnt / maxBar) * 100}%`, minHeight: cnt > 0 ? 8 : 0 }}
                   />
@@ -89,7 +159,7 @@ export default function CallOutsView() {
                 <span
                   className={cn(
                     "text-[11px] font-medium",
-                    active ? "text-primary" : "text-muted-foreground"
+                    active ? "text-primary" : "text-muted-foreground",
                   )}
                 >
                   {d}
@@ -108,7 +178,7 @@ export default function CallOutsView() {
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
             dayFilter === "All"
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border text-muted-foreground hover:text-foreground"
+              : "border-border text-muted-foreground hover:text-foreground",
           )}
         >
           All
@@ -124,7 +194,7 @@ export default function CallOutsView() {
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                 dayFilter === d
                   ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground",
               )}
             >
               {d} ({cnt})
@@ -135,50 +205,57 @@ export default function CallOutsView() {
 
       {/* Call-out cards */}
       <div className="space-y-2">
-        {filtered.map((co, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
-          >
-            <div className="flex items-center gap-3">
-              {co.resolved ? (
-                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-              )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">{co.site}</span>
-                  {co.armed && (
-                    <Badge variant="outline" className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0">
-                      ARMED
-                    </Badge>
-                  )}
+        {filtered.map((co, i) => {
+          const cost = calloutCost(co);
+          return (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+            >
+              <div className="flex items-center gap-3">
+                {co.resolved ? (
+                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{co.site}</span>
+                    {co.armed && (
+                      <Badge
+                        variant="outline"
+                        className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0"
+                      >
+                        ARMED
+                      </Badge>
+                    )}
+                    <span className="font-mono text-[11px] text-muted-foreground">${cost}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {co.day} {co.time} · {co.guard} called out
+                    {co.by ? ` · Filled by ${co.by}` : ""}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {co.day} {co.time} · {co.guard} called out
-                  {co.by ? ` · Filled by ${co.by}` : ""}
-                </p>
+              </div>
+              <div>
+                {co.resolved && co.fill != null ? (
+                  <span
+                    className={cn(
+                      "font-mono text-xs font-semibold",
+                      co.fill > 30 ? "text-warning" : "text-success",
+                    )}
+                  >
+                    {co.fill}m
+                  </span>
+                ) : (
+                  <Badge variant="destructive" className="text-[10px]">
+                    UNRESOLVED
+                  </Badge>
+                )}
               </div>
             </div>
-            <div>
-              {co.resolved && co.fill != null ? (
-                <span
-                  className={cn(
-                    "font-mono text-xs font-semibold",
-                    co.fill > 30 ? "text-warning" : "text-success"
-                  )}
-                >
-                  {co.fill}m
-                </span>
-              ) : (
-                <Badge variant="destructive" className="text-[10px]">
-                  UNRESOLVED
-                </Badge>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
