@@ -4,7 +4,16 @@ import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Shield, Info } from "lucide-react";
+import { Shield, Info, Phone, AlertTriangle } from "lucide-react";
+
+function formatFamiliarity(
+  familiarity: { siteName: string; visits: number }[],
+): { name: string; visits: number }[] {
+  return [...familiarity]
+    .sort((a, b) => b.visits - a.visits)
+    .slice(0, 3)
+    .map((f) => ({ name: f.siteName, visits: f.visits }));
+}
 
 export default function GuardPoolView() {
   const { data: guards, isLoading, error, refetch } = useGuards();
@@ -53,10 +62,10 @@ export default function GuardPoolView() {
       {/* Table */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-[40px_1fr_120px_60px_120px_90px] gap-2 border-b border-border px-4 py-2.5">
-          {["#", "Guard", "Role", "GRS", "Hours", "Status"].map((h) => (
+        <div className="grid grid-cols-[40px_1fr_120px_60px_120px_1fr_90px_40px] gap-2 border-b border-border px-4 py-2.5">
+          {["#", "Guard", "Role", "GRS", "Hours", "Site Familiarity", "Status", ""].map((h) => (
             <p
-              key={h}
+              key={h || "phone"}
               className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
             >
               {h}
@@ -65,76 +74,129 @@ export default function GuardPoolView() {
         </div>
 
         {/* Rows */}
-        {sorted.map((g, i) => (
-          <div
-            key={g.id}
-            className="grid grid-cols-[40px_1fr_120px_60px_120px_90px] gap-2 items-center border-b border-border/50 px-4 py-2.5 hover:bg-secondary/30 transition-colors"
-          >
-            <p className="font-mono text-xs text-muted-foreground">{i + 1}</p>
-            <div>
-              <p className="text-sm font-medium text-foreground">{g.name}</p>
-              <p className="font-mono text-[10px] text-muted-foreground">
-                #{g.id}
-              </p>
-            </div>
-            <div>
-              {g.armed ? (
-                <Badge
-                  variant="outline"
-                  className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0"
-                >
-                  <Shield className="mr-1 h-3 w-3" /> Armed
-                </Badge>
-              ) : g.role === "Supervisor" ? (
-                <Badge
-                  variant="outline"
-                  className="border-primary/30 bg-primary/10 text-primary text-[10px] px-1.5 py-0"
-                >
-                  Supervisor
-                </Badge>
-              ) : (
-                <span className="text-xs text-muted-foreground">Unarmed</span>
-              )}
-            </div>
-            <p
-              className={cn(
-                "font-mono text-sm font-bold",
-                g.grs >= 90
-                  ? "text-success"
-                  : g.grs >= 80
-                    ? "text-info"
-                    : g.grs >= 70
-                      ? "text-warning"
-                      : "text-muted-foreground",
-              )}
+        {sorted.map((g, i) => {
+          const hasCalloutPattern =
+            g.calloutHistory && g.calloutHistory.length >= 3;
+          const topSites = g.familiarity
+            ? formatFamiliarity(g.familiarity)
+            : [];
+
+          return (
+            <div
+              key={g.id}
+              className="grid grid-cols-[40px_1fr_120px_60px_120px_1fr_90px_40px] gap-2 items-center border-b border-border/50 px-4 py-2.5 hover:bg-secondary/30 transition-colors"
             >
-              {g.grs}
-            </p>
-            <div className="space-y-1">
-              <p className="font-mono text-[11px] text-muted-foreground">
-                {g.hrs}/{g.max}
+              <p className="font-mono text-xs text-muted-foreground">
+                {i + 1}
               </p>
-              <Progress value={(g.hrs / g.max) * 100} className="h-1.5" />
-            </div>
-            <div>
-              <span
+              <div className="flex items-center gap-1.5">
+                <div>
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {g.name}
+                    </p>
+                    {hasCalloutPattern && (
+                      <span title="Callout pattern detected">
+                        <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    #{g.id}
+                  </p>
+                </div>
+              </div>
+              <div>
+                {g.armed ? (
+                  <Badge
+                    variant="outline"
+                    className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0"
+                  >
+                    <Shield className="mr-1 h-3 w-3" /> Armed
+                  </Badge>
+                ) : g.role === "Supervisor" ? (
+                  <Badge
+                    variant="outline"
+                    className="border-primary/30 bg-primary/10 text-primary text-[10px] px-1.5 py-0"
+                  >
+                    Supervisor
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Unarmed</span>
+                )}
+              </div>
+              <p
                 className={cn(
-                  "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  g.status === "on-duty" && "bg-success/10 text-success",
-                  g.status === "off-duty" &&
-                    "bg-secondary text-muted-foreground",
-                  g.status === "training" && "bg-info/10 text-info",
+                  "font-mono text-sm font-bold",
+                  g.grs >= 90
+                    ? "text-success"
+                    : g.grs >= 80
+                      ? "text-info"
+                      : g.grs >= 70
+                        ? "text-warning"
+                        : "text-muted-foreground",
                 )}
               >
-                {g.status === "on-duty"
-                  ? "On Duty"
-                  : g.status === "training"
-                    ? "Training"
-                    : "Off Duty"}
-              </span>
+                {g.grs}
+              </p>
+              <div className="space-y-1">
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  {g.hrs}/{g.max}
+                </p>
+                <Progress value={(g.hrs / g.max) * 100} className="h-1.5" />
+              </div>
+              {/* Site Familiarity */}
+              <div className="min-w-0">
+                {topSites.length > 0 ? (
+                  <p className="text-[11px] text-foreground truncate">
+                    {topSites.map((s, idx) => (
+                      <span key={s.name}>
+                        {idx > 0 && ", "}
+                        {s.name}{" "}
+                        <span className="text-muted-foreground">({s.visits})</span>
+                      </span>
+                    ))}
+                  </p>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">--</span>
+                )}
+              </div>
+              <div>
+                <span
+                  className={cn(
+                    "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    g.status === "on-duty" && "bg-success/10 text-success",
+                    g.status === "off-duty" &&
+                      "bg-secondary text-muted-foreground",
+                    g.status === "training" && "bg-info/10 text-info",
+                  )}
+                >
+                  {g.status === "on-duty"
+                    ? "On Duty"
+                    : g.status === "training"
+                      ? "Training"
+                      : "Off Duty"}
+                </span>
+              </div>
+              {/* Phone */}
+              <div className="flex justify-center">
+                {g.phone ? (
+                  <a
+                    href={`tel:${g.phone}`}
+                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    title={`Call ${g.name}`}
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground/40">
+                    <Phone className="h-3.5 w-3.5" />
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Cascade rules */}
