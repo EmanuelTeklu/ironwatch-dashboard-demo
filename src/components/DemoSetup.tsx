@@ -48,7 +48,7 @@ function normalizePhone(raw: string): string {
 // ---------------------------------------------------------------------------
 
 interface DemoSetupProps {
-  onStart: (config: DemoConfig) => void;
+  onStart: (config: DemoConfig, speed: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,9 +82,18 @@ export default function DemoSetup({ onStart }: DemoSetupProps) {
         guardName: guardName.trim(),
       };
 
-      onStart(config);
+      const speedMs = speed === "normal" ? 60 : 300;
+      onStart(config, speedMs);
     },
-    [formValid, managerPhone, guardPhone, managerName, guardName, onStart],
+    [
+      formValid,
+      managerPhone,
+      guardPhone,
+      managerName,
+      guardName,
+      speed,
+      onStart,
+    ],
   );
 
   return (
