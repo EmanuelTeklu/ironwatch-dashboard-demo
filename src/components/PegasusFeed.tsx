@@ -315,9 +315,11 @@ export function PegasusFeed({
     >
       {/* Header */}
       <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
-        <span className="text-sm" role="img" aria-label="Pegasus">
-          🦅
-        </span>
+        <img
+          src="/pegasus.png"
+          alt="Pegasus"
+          className="h-5 w-5 object-contain"
+        />
         <div className="flex flex-col">
           <span className="text-xs font-semibold tracking-wide text-foreground">
             Pegasus

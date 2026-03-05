@@ -1,11 +1,4 @@
-import {
-  LayoutDashboard,
-  PhoneOff,
-  Users,
-  Car,
-  Bot,
-  LogOut,
-} from "lucide-react";
+import { LayoutDashboard, PhoneOff, Users, Car, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -29,10 +22,9 @@ type NavItem = {
   url: string;
 };
 
-const pegasusItem: NavItem = {
-  id: "pegasus",
+const pegasusItem = {
+  id: "pegasus" as ViewId,
   label: "Pegasus",
-  icon: Bot,
   url: "/pegasus",
 };
 
@@ -97,7 +89,11 @@ export function AppSidebar() {
                     className="relative text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
                     activeClassName="bg-purple-500/15 text-purple-300 font-medium"
                   >
-                    <pegasusItem.icon className="h-4 w-4" />
+                    <img
+                      src="/pegasus.png"
+                      alt=""
+                      className="h-4 w-4 object-contain"
+                    />
                     {!collapsed && (
                       <span className="flex items-center gap-2">
                         {pegasusItem.label}
