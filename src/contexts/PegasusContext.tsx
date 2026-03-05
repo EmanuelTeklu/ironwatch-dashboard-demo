@@ -1,8 +1,25 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { usePegasus } from "@/hooks/use-pegasus";
 import { useSimulation } from "@/hooks/use-simulation";
-import { SITES, GUARDS, ROVERS, TONIGHT_SCHEDULE, CALLOUT_HISTORY } from "@/lib/data";
-import type { PegasusMessage, PegasusMessageType, DemoConfig } from "@/lib/types";
+import {
+  SITES,
+  GUARDS,
+  ROVERS,
+  TONIGHT_SCHEDULE,
+  CALLOUT_HISTORY,
+} from "@/lib/data";
+import type {
+  PegasusMessage,
+  PegasusMessageType,
+  DemoConfig,
+} from "@/lib/types";
 import type { SiteSimStatus } from "@/lib/simulation";
 
 // ---------------------------------------------------------------------------
@@ -35,7 +52,7 @@ interface PegasusContextValue {
     timestamp?: string,
   ) => PegasusMessage;
   readonly clearMessages: () => void;
-  readonly demoConfig: DemoConfig | null;
+  readonly demoConfig: DemoConfig;
   readonly setDemoConfig: (config: DemoConfig, speed?: number) => void;
   readonly simulation: SimulationState;
 }
@@ -48,36 +65,47 @@ const PegasusContext = createContext<PegasusContextValue | null>(null);
 
 const DEFAULT_SIM_SPEED = 300;
 
-export function PegasusProvider({ children }: { children: React.ReactNode }) {
-  const [demoConfig, setDemoConfigState] = useState<DemoConfig | null>(null);
-  const [simSpeed, setSimSpeed] = useState(DEFAULT_SIM_SPEED);
+const DEFAULT_DEMO_CONFIG: DemoConfig = {
+  managerName: "Manager",
+  guardName: "Guard",
+  managerPhone: "",
+  guardPhone: "",
+};
 
-  const context = useMemo(() => ({
-    sites: SITES,
-    guards: GUARDS,
-    rovers: ROVERS,
-    schedule: TONIGHT_SCHEDULE,
-    calloutHistory: CALLOUT_HISTORY,
-  }), []);
+export function PegasusProvider({ children }: { children: React.ReactNode }) {
+  const [demoConfig, setDemoConfigState] =
+    useState<DemoConfig>(DEFAULT_DEMO_CONFIG);
+  const [simSpeed, setSimSpeed] = useState(DEFAULT_SIM_SPEED);
+  const autoStarted = useRef(false);
+
+  const context = useMemo(
+    () => ({
+      sites: SITES,
+      guards: GUARDS,
+      rovers: ROVERS,
+      schedule: TONIGHT_SCHEDULE,
+      calloutHistory: CALLOUT_HISTORY,
+    }),
+    [],
+  );
 
   const pegasus = usePegasus({ context });
 
   const simulation = useSimulation({
     addSystemMessage: pegasus.addSystemMessage,
-    demoConfig: demoConfig ?? undefined,
+    demoConfig,
     speed: simSpeed,
   });
 
-  // Auto-start simulation when demoConfig is set
-  const demoConfigSet = demoConfig !== null;
-  const simRunning = simulation.isRunning;
+  // Auto-start simulation on mount
   useEffect(() => {
-    if (demoConfigSet && !simRunning) {
+    if (!autoStarted.current) {
+      autoStarted.current = true;
       simulation.start();
     }
-    // Only react to demoConfig being set, not to simulation reference changes
+    // Only run on mount — simulation ref is stable enough via the ref guard
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoConfigSet]);
+  }, []);
 
   const setDemoConfig = useMemo(
     () => (config: DemoConfig, speed?: number) => {
@@ -100,9 +128,7 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <PegasusContext.Provider value={value}>
-      {children}
-    </PegasusContext.Provider>
+    <PegasusContext.Provider value={value}>{children}</PegasusContext.Provider>
   );
 }
 
@@ -112,6 +138,7 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
 
 export function usePegasusContext() {
   const ctx = useContext(PegasusContext);
-  if (!ctx) throw new Error("usePegasusContext must be used within PegasusProvider");
+  if (!ctx)
+    throw new Error("usePegasusContext must be used within PegasusProvider");
   return ctx;
 }
