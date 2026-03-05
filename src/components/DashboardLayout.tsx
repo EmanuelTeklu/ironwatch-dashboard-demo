@@ -24,8 +24,6 @@ const VIEW_TITLES: Record<string, string> = {
   "/callouts": "Call-Outs",
   "/simulation": "Live Sim",
   "/guards": "Guard Pool",
-  "/rovers": "Rover Map",
-  "/pegasus": "Pegasus",
 };
 
 const PANEL_WIDTH = 380;
@@ -35,29 +33,23 @@ const PANEL_WIDTH = 380;
 // ---------------------------------------------------------------------------
 
 const VIEW_CONTEXTS: Record<string, string> = {
-  "/": "You are assisting the manager while they view Tonight's Board — a live grid of 24 Dittmar sites showing guard assignments, ConnectTeams confirmation status, Therms check-in status, and one-tap calling. Focus on real-time site monitoring, flag any issues, and help the manager stay on top of all 24 sites.",
+  "/": "You are assisting the manager while they view Tonight's Board — a live grid of 24 Dittmar sites showing guard assignments, ConnectTeams confirmation status, Therms check-in status, rover status strip, and one-tap calling. Focus on real-time site monitoring, flag any issues, and help the manager stay on top of all 24 sites.",
   "/callouts":
     "You are assisting the manager while they view the Call-Outs panel — showing active and historical callouts, fill times, cost impact, and response comparisons. Focus on helping the manager fill uncovered shifts, run the cascade process, and optimize response times.",
   "/guards":
     "You are assisting the manager while they view the Guard Pool — showing all guards with GRS scores, hours, site familiarity, and availability. Help with guard selection, coverage questions, and workforce insights.",
-  "/rovers":
-    "You are assisting the manager while they view the Rover Map — showing 4 rovers with zone assignments and patrol status. Help with rover coordination and coverage gap management.",
 };
 
 const VIEW_CONTEXT_LABELS: Record<string, string> = {
   "/": "Watching Tonight's Board",
   "/callouts": "Monitoring Call-Outs",
   "/guards": "Reviewing Guard Pool",
-  "/rovers": "Tracking Rovers",
-  "/pegasus": "General Operations",
 };
 
 const VIEW_PLACEHOLDERS: Record<string, string> = {
   "/": "Ask about site status, check-ins...",
   "/callouts": "Ask about callouts, fill coverage...",
   "/guards": "Ask about guard availability, GRS...",
-  "/rovers": "Ask about rover routes, zones...",
-  "/pegasus": "Ask Pegasus anything...",
 };
 
 // ---------------------------------------------------------------------------

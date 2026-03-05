@@ -35,10 +35,7 @@ export interface SimulationCallbacks {
     timestamp: string,
   ) => void;
   readonly onSendSms: (to: string, body: string) => Promise<void>;
-  readonly onSiteStatusChange: (
-    siteId: number,
-    status: SiteSimStatus,
-  ) => void;
+  readonly onSiteStatusChange: (siteId: number, status: SiteSimStatus) => void;
   readonly onPhaseChange: (phase: string) => void;
   readonly onComplete: () => void;
 }
@@ -117,9 +114,7 @@ function messageTypeForEvent(eventType: SimEvent["type"]): PegasusMessageType {
 }
 
 // Refine cascade-reply type based on acceptance
-function refineCascadeReplyType(
-  event: SimEvent,
-): PegasusMessageType {
+function refineCascadeReplyType(event: SimEvent): PegasusMessageType {
   if (event.type !== "cascade-reply") {
     return messageTypeForEvent(event.type);
   }
@@ -221,10 +216,7 @@ function processSiteEffects(
       break;
     }
     case "therms-late": {
-      next.set(
-        siteId,
-        updateSiteStatus(current, { status: "yellow" }),
-      );
+      next.set(siteId, updateSiteStatus(current, { status: "yellow" }));
       break;
     }
     case "confirmation-reply": {
@@ -254,7 +246,10 @@ function extractGuardName(message: string): string | null {
 // Default configuration
 // ---------------------------------------------------------------------------
 
-const DEFAULT_SPEED = 300;
+// Speed presets (sim-minutes per real-second)
+export const PRESENTATION_SPEED = 6; // 1 sim-minute = 167ms. Full night ~2 min.
+export const DEMO_SPEED = 30; // 1 sim-minute = 33ms.  Full night ~26s.
+export const DEV_SPEED = 120; // Full night ~6.5s. Testing only.
 
 // ---------------------------------------------------------------------------
 // Factory: createSimulation
@@ -270,7 +265,7 @@ export function createSimulation(
     throw new Error("Timeline must contain at least one event");
   }
 
-  const speed = config.speed > 0 ? config.speed : DEFAULT_SPEED;
+  const speed = config.speed > 0 ? config.speed : PRESENTATION_SPEED;
 
   // --- Mutable internal state (contained within closure) ---
   let running = false;

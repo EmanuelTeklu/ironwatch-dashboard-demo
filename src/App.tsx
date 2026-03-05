@@ -12,7 +12,6 @@ import Index from "./pages/Index";
 import CallOutsView from "./pages/CallOutsView";
 import GuardPoolView from "./pages/GuardPoolView";
 import LiveSimView from "./pages/LiveSimView";
-import RoverMapView from "./pages/RoverMapView";
 import PegasusFullView from "./pages/PegasusFullView";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
@@ -38,20 +37,38 @@ const App = () => (
                 <ProtectedRoute>
                   <PegasusProvider>
                     <RealtimeProvider>
-                      <DashboardLayout>
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/callouts" element={<CallOutsView />} />
-                          <Route path="/guards" element={<GuardPoolView />} />
-                          <Route path="/rovers" element={<RoverMapView />} />
-                          <Route
-                            path="/pegasus"
-                            element={<PegasusFullView />}
-                          />
-                          <Route path="/simulation" element={<LiveSimView />} />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </DashboardLayout>
+                      <Routes>
+                        {/* Pegasus: full-screen, NO DashboardLayout */}
+                        <Route
+                          path="/pegasus"
+                          element={<PegasusFullView />}
+                        />
+
+                        {/* Dashboard views: with sidebar + Pegasus panel */}
+                        <Route
+                          path="/*"
+                          element={
+                            <DashboardLayout>
+                              <Routes>
+                                <Route path="/" element={<Index />} />
+                                <Route
+                                  path="/callouts"
+                                  element={<CallOutsView />}
+                                />
+                                <Route
+                                  path="/guards"
+                                  element={<GuardPoolView />}
+                                />
+                                <Route
+                                  path="/simulation"
+                                  element={<LiveSimView />}
+                                />
+                                <Route path="*" element={<NotFound />} />
+                              </Routes>
+                            </DashboardLayout>
+                          }
+                        />
+                      </Routes>
                     </RealtimeProvider>
                   </PegasusProvider>
                 </ProtectedRoute>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePegasusContext } from "@/contexts/PegasusContext";
 import { useSites } from "@/hooks/use-sites";
 import { useGuards } from "@/hooks/use-guards";
 import { useSchedule } from "@/hooks/use-schedule";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Phone, CheckCircle, Clock, Shield, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RoverStrip } from "@/components/board/RoverStrip";
 import type { Site, Guard, ScheduleEntry, Rover } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -34,6 +36,15 @@ function buildBoardRows(
   sites: readonly Site[],
   guards: readonly Guard[],
   schedule: readonly ScheduleEntry[],
+  siteStatuses?: ReadonlyMap<
+    number,
+    {
+      guardCheckedIn: boolean;
+      status: string;
+      coveredBy: string | null;
+      connectTeamsConfirmed: boolean;
+    }
+  >,
 ): readonly BoardRow[] {
   const guardMap = new Map(guards.map((g) => [g.id, g]));
   const scheduleMap = new Map(schedule.map((s) => [s.siteId, s]));
@@ -41,9 +52,10 @@ function buildBoardRows(
   return sites.map((site) => {
     const entry = scheduleMap.get(site.id) ?? null;
     const guard = entry ? (guardMap.get(entry.guardId) ?? null) : null;
-    const confirmed = entry?.connectTeamsConfirmed ?? false;
-    // Pre-simulation: no one has checked in yet
-    const checkedIn = false;
+    const simStatus = siteStatuses?.get(site.id);
+    const confirmed =
+      simStatus?.connectTeamsConfirmed ?? entry?.connectTeamsConfirmed ?? false;
+    const checkedIn = simStatus?.guardCheckedIn ?? false;
     const covered = guard !== null;
 
     return { site, guard, schedule: entry, confirmed, checkedIn, covered };
@@ -57,13 +69,18 @@ function getRowBorderColor(row: BoardRow): string {
   return "border-l-border";
 }
 
-function getRowStatus(row: BoardRow): "confirmed" | "unconfirmed" | "uncovered" {
+function getRowStatus(
+  row: BoardRow,
+): "confirmed" | "unconfirmed" | "uncovered" {
   if (!row.covered) return "uncovered";
   if (row.confirmed) return "confirmed";
   return "unconfirmed";
 }
 
-function filterRows(rows: readonly BoardRow[], filter: BoardFilter): readonly BoardRow[] {
+function filterRows(
+  rows: readonly BoardRow[],
+  filter: BoardFilter,
+): readonly BoardRow[] {
   switch (filter) {
     case "armed":
       return rows.filter((r) => r.site.armed);
@@ -75,9 +92,14 @@ function filterRows(rows: readonly BoardRow[], filter: BoardFilter): readonly Bo
 }
 
 function sortRows(rows: readonly BoardRow[]): readonly BoardRow[] {
-  const priority: Record<string, number> = { uncovered: 0, unconfirmed: 1, confirmed: 2 };
+  const priority: Record<string, number> = {
+    uncovered: 0,
+    unconfirmed: 1,
+    confirmed: 2,
+  };
   return [...rows].sort(
-    (a, b) => (priority[getRowStatus(a)] ?? 2) - (priority[getRowStatus(b)] ?? 2),
+    (a, b) =>
+      (priority[getRowStatus(a)] ?? 2) - (priority[getRowStatus(b)] ?? 2),
   );
 }
 
@@ -94,7 +116,12 @@ function PhoneButton({ phone, label }: PhoneButtonProps) {
   if (!phone) return null;
 
   return (
-    <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" asChild>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 gap-1 px-2 text-xs"
+      asChild
+    >
       <a href={`tel:${phone}`} aria-label={`Call ${label}`}>
         <Phone className="h-3 w-3" />
         {label}
@@ -124,7 +151,9 @@ function SiteRowCard({ row, roverPhone }: SiteRowCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">{site.name}</span>
+            <span className="text-sm font-semibold text-foreground">
+              {site.name}
+            </span>
             {site.armed && (
               <Badge
                 variant="outline"
@@ -170,12 +199,19 @@ function SiteRowCard({ row, roverPhone }: SiteRowCardProps) {
             ) : (
               <Clock className="h-3.5 w-3.5 text-warning" />
             )}
-            <span className={cn("text-[10px]", confirmed ? "text-success" : "text-warning")}>
+            <span
+              className={cn(
+                "text-[10px]",
+                confirmed ? "text-success" : "text-warning",
+              )}
+            >
               {confirmed ? "CT Confirmed" : "CT Pending"}
             </span>
           </>
         ) : (
-          <span className="text-sm italic text-muted-foreground">No guard assigned</span>
+          <span className="text-sm italic text-muted-foreground">
+            No guard assigned
+          </span>
         )}
       </div>
 
@@ -201,8 +237,18 @@ interface FilterPillsProps {
   readonly totalCount: number;
 }
 
-function FilterPills({ filter, onFilterChange, atRiskCount, armedCount, totalCount }: FilterPillsProps) {
-  const pills: readonly { id: BoardFilter; label: string; variant?: "destructive" }[] = [
+function FilterPills({
+  filter,
+  onFilterChange,
+  atRiskCount,
+  armedCount,
+  totalCount,
+}: FilterPillsProps) {
+  const pills: readonly {
+    id: BoardFilter;
+    label: string;
+    variant?: "destructive";
+  }[] = [
     { id: "all", label: `All ${totalCount}` },
     { id: "armed", label: `Armed ${armedCount}` },
     { id: "at-risk", label: `At Risk ${atRiskCount}`, variant: "destructive" },
@@ -324,9 +370,11 @@ function TonightsBoardContent({
   filter,
   onFilterChange,
 }: TonightsBoardContentProps) {
+  const { simulation } = usePegasusContext();
+
   const boardRows = useMemo(
-    () => buildBoardRows(sites, guards, schedule),
-    [sites, guards, schedule],
+    () => buildBoardRows(sites, guards, schedule, simulation.siteStatuses),
+    [sites, guards, schedule, simulation.siteStatuses],
   );
 
   const confirmedCount = useMemo(
@@ -376,17 +424,25 @@ function TonightsBoardContent({
         totalCount={sites.length}
       />
 
+      <RoverStrip rovers={rovers} />
+
       {/* Site list */}
       <div className="space-y-2">
         {filteredRows.map((row) => (
-          <SiteRowCard key={row.site.id} row={row} roverPhone={defaultRoverPhone} />
+          <SiteRowCard
+            key={row.site.id}
+            row={row}
+            roverPhone={defaultRoverPhone}
+          />
         ))}
       </div>
 
       {/* Empty state */}
       {filteredRows.length === 0 && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-muted-foreground">No sites match the current filter.</p>
+          <p className="text-sm text-muted-foreground">
+            No sites match the current filter.
+          </p>
         </div>
       )}
     </div>

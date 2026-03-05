@@ -4,6 +4,7 @@ import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { isOnCall, sortGuardsOnCallFirst } from "@/lib/guard-utils";
 import { Shield, Info, Phone, AlertTriangle } from "lucide-react";
 
 function formatFamiliarity(
@@ -47,7 +48,7 @@ export default function GuardPoolView() {
   const cappedCount = guards.filter((g) => g.hrs >= g.max).length;
   const onDutyCount = guards.filter((g) => g.status === "on-duty").length;
 
-  const sorted = [...activeGuards].sort((a, b) => b.grs - a.grs);
+  const sorted = sortGuardsOnCallFirst(activeGuards);
 
   return (
     <div className="space-y-6">
@@ -63,7 +64,16 @@ export default function GuardPoolView() {
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Header */}
         <div className="grid grid-cols-[40px_1fr_120px_60px_120px_1fr_90px_40px] gap-2 border-b border-border px-4 py-2.5">
-          {["#", "Guard", "Role", "GRS", "Hours", "Site Familiarity", "Status", ""].map((h) => (
+          {[
+            "#",
+            "Guard",
+            "Role",
+            "GRS",
+            "Hours",
+            "Site Familiarity",
+            "Status",
+            "",
+          ].map((h) => (
             <p
               key={h || "phone"}
               className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
@@ -86,9 +96,7 @@ export default function GuardPoolView() {
               key={g.id}
               className="grid grid-cols-[40px_1fr_120px_60px_120px_1fr_90px_40px] gap-2 items-center border-b border-border/50 px-4 py-2.5 hover:bg-secondary/30 transition-colors"
             >
-              <p className="font-mono text-xs text-muted-foreground">
-                {i + 1}
-              </p>
+              <p className="font-mono text-xs text-muted-foreground">{i + 1}</p>
               <div className="flex items-center gap-1.5">
                 <div>
                   <div className="flex items-center gap-1">
@@ -99,6 +107,14 @@ export default function GuardPoolView() {
                       <span title="Callout pattern detected">
                         <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                       </span>
+                    )}
+                    {isOnCall(g) && (
+                      <Badge
+                        variant="outline"
+                        className="border-success/30 bg-success/10 text-success text-[10px] px-1.5 py-0 ml-1"
+                      >
+                        On Call
+                      </Badge>
                     )}
                   </div>
                   <p className="font-mono text-[10px] text-muted-foreground">
@@ -153,7 +169,9 @@ export default function GuardPoolView() {
                       <span key={s.name}>
                         {idx > 0 && ", "}
                         {s.name}{" "}
-                        <span className="text-muted-foreground">({s.visits})</span>
+                        <span className="text-muted-foreground">
+                          ({s.visits})
+                        </span>
                       </span>
                     ))}
                   </p>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, PhoneOff, Users, Car, LogOut } from "lucide-react";
+import { LayoutDashboard, PhoneOff, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -32,7 +32,6 @@ const operationsItems: NavItem[] = [
   { id: "sites", label: "Tonight's Board", icon: LayoutDashboard, url: "/" },
   { id: "callouts", label: "Call-Outs", icon: PhoneOff, url: "/callouts" },
   { id: "pool", label: "Guard Pool", icon: Users, url: "/guards" },
-  { id: "rovers", label: "Rovers", icon: Car, url: "/rovers" },
 ];
 
 export function AppSidebar() {

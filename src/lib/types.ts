@@ -169,10 +169,4 @@ export interface ScheduleEntry {
 
 // --- Navigation -------------------------------------------------------------
 
-export type ViewId =
-  | "sites"
-  | "callouts"
-  | "cascade"
-  | "pool"
-  | "rovers"
-  | "pegasus";
+export type ViewId = "sites" | "callouts" | "cascade" | "pool" | "pegasus";

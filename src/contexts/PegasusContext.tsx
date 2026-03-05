@@ -5,9 +5,11 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import { usePegasus } from "@/hooks/use-pegasus";
 import { useSimulation } from "@/hooks/use-simulation";
+import { useThreadManager } from "@/hooks/use-thread-manager";
 import {
   SITES,
   GUARDS,
@@ -21,6 +23,7 @@ import type {
   DemoConfig,
 } from "@/lib/types";
 import type { SiteSimStatus } from "@/lib/simulation";
+import type { PegasusThread } from "@/lib/thread-types";
 
 // ---------------------------------------------------------------------------
 // Simulation state exposed via context
@@ -39,10 +42,20 @@ interface SimulationState {
 }
 
 // ---------------------------------------------------------------------------
-// Context value type
+// Context value type — now thread-aware
 // ---------------------------------------------------------------------------
 
 interface PegasusContextValue {
+  // Thread CRUD
+  readonly threads: readonly PegasusThread[];
+  readonly activeThread: PegasusThread | null;
+  readonly activeThreadId: string | null;
+  readonly createThread: (title?: string) => PegasusThread;
+  readonly switchThread: (id: string) => void;
+  readonly deleteThread: (id: string) => void;
+  readonly renameThread: (id: string, title: string) => void;
+
+  // Active thread chat
   readonly messages: PegasusMessage[];
   readonly isStreaming: boolean;
   readonly streamingThinking: string;
@@ -53,9 +66,15 @@ interface PegasusContextValue {
     timestamp?: string,
   ) => PegasusMessage;
   readonly clearMessages: () => void;
+
+  // Simulation
+  readonly simulation: SimulationState;
+
+  // Demo config
   readonly demoConfig: DemoConfig;
   readonly setDemoConfig: (config: DemoConfig, speed?: number) => void;
-  readonly simulation: SimulationState;
+
+  // View context
   readonly viewContext: string;
   readonly setViewContext: (viewContext: string) => void;
 }
@@ -66,7 +85,7 @@ interface PegasusContextValue {
 
 const PegasusContext = createContext<PegasusContextValue | null>(null);
 
-const DEFAULT_SIM_SPEED = 300;
+const DEFAULT_SIM_SPEED = 6;
 
 const DEFAULT_DEMO_CONFIG: DemoConfig = {
   managerName: "Manager",
@@ -82,6 +101,9 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
   const [viewContext, setViewContext] = useState("");
   const autoStarted = useRef(false);
 
+  // Thread manager
+  const threadManager = useThreadManager();
+
   const context = useMemo(
     () => ({
       sites: SITES,
@@ -93,7 +115,14 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const pegasus = usePegasus({ context, viewContext });
+  // Pegasus hook — operates on active thread's history
+  const pegasus = usePegasus({
+    context,
+    viewContext,
+    threadId: threadManager.activeThreadId ?? undefined,
+    threadHistory: threadManager.activeThread?.history,
+    onThreadUpdate: threadManager.updateThreadData,
+  });
 
   const simulation = useSimulation({
     addSystemMessage: pegasus.addSystemMessage,
@@ -101,36 +130,73 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
     speed: simSpeed,
   });
 
-  // Auto-start simulation on mount
+  // Auto-start simulation on mount and ensure an operations thread exists
   useEffect(() => {
     if (!autoStarted.current) {
       autoStarted.current = true;
+
+      // Create or reuse a "Tonight's Operations" thread for sim messages
+      const existingOpsThread = threadManager.threads.find(
+        (t) => t.title === "Tonight's Operations",
+      );
+      if (!existingOpsThread) {
+        threadManager.createThread("Tonight's Operations");
+      } else if (!threadManager.activeThreadId) {
+        threadManager.switchThread(existingOpsThread.id);
+      }
+
       simulation.start();
     }
-    // Only run on mount — simulation ref is stable enough via the ref guard
+    // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setDemoConfig = useMemo(
-    () => (config: DemoConfig, speed?: number) => {
-      if (speed != null && speed > 0) {
-        setSimSpeed(speed);
-      }
-      setDemoConfigState(config);
-    },
-    [],
-  );
+  const setDemoConfig = useCallback((config: DemoConfig, speed?: number) => {
+    if (speed != null && speed > 0) {
+      setSimSpeed(speed);
+    }
+    setDemoConfigState(config);
+  }, []);
 
   const value: PegasusContextValue = useMemo(
     () => ({
+      // Thread CRUD
+      threads: threadManager.threads,
+      activeThread: threadManager.activeThread,
+      activeThreadId: threadManager.activeThreadId,
+      createThread: threadManager.createThread,
+      switchThread: threadManager.switchThread,
+      deleteThread: threadManager.deleteThread,
+      renameThread: threadManager.renameThread,
+
+      // Chat
       ...pegasus,
+
+      // Simulation
+      simulation,
+
+      // Demo config
       demoConfig,
       setDemoConfig,
-      simulation,
+
+      // View context
       viewContext,
       setViewContext,
     }),
-    [pegasus, demoConfig, setDemoConfig, simulation, viewContext],
+    [
+      threadManager.threads,
+      threadManager.activeThread,
+      threadManager.activeThreadId,
+      threadManager.createThread,
+      threadManager.switchThread,
+      threadManager.deleteThread,
+      threadManager.renameThread,
+      pegasus,
+      simulation,
+      demoConfig,
+      setDemoConfig,
+      viewContext,
+    ],
   );
 
   return (

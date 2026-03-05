@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { PegasusMessage, PegasusMessageType } from "@/lib/types";
+import type { PegasusThread } from "@/lib/thread-types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -8,6 +9,12 @@ import type { PegasusMessage, PegasusMessageType } from "@/lib/types";
 interface UsePegasusOptions {
   context?: Record<string, unknown>;
   viewContext?: string;
+  threadId?: string;
+  threadHistory?: PegasusThread["history"];
+  onThreadUpdate?: (
+    id: string,
+    updates: Partial<Pick<PegasusThread, "title" | "messages" | "history">>,
+  ) => void;
 }
 
 interface UsePegasusReturn {
@@ -85,16 +92,42 @@ function parseSseLine(line: string): SseChunk | null {
 // ---------------------------------------------------------------------------
 
 export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
-  const { context, viewContext } = options;
+  const { context, viewContext, threadId, threadHistory, onThreadUpdate } =
+    options;
 
   const [messages, setMessages] = useState<PegasusMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingThinking, setStreamingThinking] = useState("");
 
-  // Full conversation history for Claude context (role + content pairs)
+  // Fallback history for non-thread mode (DashboardLayout sidebar usage)
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
     [],
   );
+
+  // Track previous threadId so we can swap messages on thread switch
+  const prevThreadIdRef = useRef<string | undefined>(threadId);
+
+  // When the active thread changes, load that thread's messages
+  useEffect(() => {
+    if (threadId !== prevThreadIdRef.current) {
+      prevThreadIdRef.current = threadId;
+      // Messages are rebuilt from thread data — clear local state
+      setMessages([]);
+      setIsStreaming(false);
+      setStreamingThinking("");
+    }
+  }, [threadId]);
+
+  // Get the effective history for API calls
+  const getHistory = useCallback((): {
+    role: "user" | "assistant";
+    content: string;
+  }[] => {
+    if (threadHistory) {
+      return [...threadHistory];
+    }
+    return historyRef.current;
+  }, [threadHistory]);
 
   // -------------------------------------------------------------------------
   // addSystemMessage — append a non-AI event message to the feed
@@ -113,9 +146,17 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         type,
       };
       setMessages((prev) => [...prev, message]);
+
+      // Persist to thread if active
+      if (threadId && onThreadUpdate) {
+        onThreadUpdate(threadId, {
+          messages: [...messages, message],
+        });
+      }
+
       return message;
     },
-    [],
+    [threadId, onThreadUpdate, messages],
   );
 
   // -------------------------------------------------------------------------
@@ -125,7 +166,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
     async (userContent: string): Promise<void> => {
       if (!userContent.trim()) return;
 
-      // 1. Add manager message to the feed (immutable append)
+      // 1. Add manager message to the feed
       const managerMsg: PegasusMessage = {
         id: nextId(),
         role: "manager",
@@ -135,13 +176,18 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
       };
       setMessages((prev) => [...prev, managerMsg]);
 
-      // 2. Update conversation history for Claude
-      historyRef.current = [
-        ...historyRef.current,
-        { role: "user", content: userContent.trim() },
+      // 2. Update conversation history
+      const history = getHistory();
+      const updatedHistory = [
+        ...history,
+        { role: "user" as const, content: userContent.trim() },
       ];
 
-      // 3. Create a placeholder for the streaming response
+      if (!threadHistory) {
+        historyRef.current = updatedHistory;
+      }
+
+      // 3. Create placeholder for streaming response
       const aiMsgId = nextId();
       const aiMsg: PegasusMessage = {
         id: aiMsgId,
@@ -162,7 +208,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: historyRef.current,
+            messages: updatedHistory,
             context,
             viewContext,
           }),
@@ -186,9 +232,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
 
           buffer += decoder.decode(value, { stream: true });
 
-          // Process complete lines from the buffer
           const lines = buffer.split("\n");
-          // Keep the last (potentially incomplete) line in the buffer
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
@@ -197,7 +241,6 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
             if (chunk.done) break;
             if (chunk.error) throw new Error(chunk.error);
 
-            // Accumulate thinking content
             if (chunk.thinking) {
               thinkingAccumulator += chunk.thinking;
               setStreamingThinking(thinkingAccumulator);
@@ -206,8 +249,6 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
             if (chunk.text) {
               fullResponse += chunk.text;
               const updatedContent = fullResponse;
-
-              // Immutable update: map over messages, replace content for streaming ID
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === aiMsgId
@@ -219,7 +260,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
           }
         }
 
-        // Process any remaining buffer content
+        // Process remaining buffer
         if (buffer.trim()) {
           const chunk = parseSseLine(buffer);
           if (chunk && !chunk.done) {
@@ -242,15 +283,29 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         }
 
         // 4. Record assistant response in conversation history
-        historyRef.current = [
-          ...historyRef.current,
-          { role: "assistant", content: fullResponse },
+        const finalHistory = [
+          ...updatedHistory,
+          { role: "assistant" as const, content: fullResponse },
         ];
+
+        if (!threadHistory) {
+          historyRef.current = finalHistory;
+        }
+
+        // Persist to thread if active
+        if (threadId && onThreadUpdate) {
+          setMessages((currentMessages) => {
+            onThreadUpdate(threadId, {
+              messages: currentMessages,
+              history: finalHistory,
+            });
+            return currentMessages;
+          });
+        }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error from Pegasus";
 
-        // Add error as a danger message in the feed
         const errorMsg: PegasusMessage = {
           id: nextId(),
           role: "system",
@@ -260,7 +315,6 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         };
         setMessages((prev) => [...prev, errorMsg]);
 
-        // Remove the empty AI placeholder if no content was streamed
         if (!fullResponse) {
           setMessages((prev) => prev.filter((msg) => msg.id !== aiMsgId));
         }
@@ -269,7 +323,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         setStreamingThinking("");
       }
     },
-    [context, viewContext],
+    [context, viewContext, getHistory, threadId, threadHistory, onThreadUpdate],
   );
 
   // -------------------------------------------------------------------------

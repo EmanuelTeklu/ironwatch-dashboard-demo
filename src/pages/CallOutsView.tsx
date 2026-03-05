@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { Volume2, Play } from "lucide-react";
+import { useCalloutSimulation } from "@/hooks/use-callout-simulation";
+import { useElevenLabs } from "@/hooks/use-elevenlabs";
+import { usePegasusContext } from "@/contexts/PegasusContext";
+import type { CalloutEvent } from "@/lib/callout-simulation";
+import { Button } from "@/components/ui/button";
 import { useCallOuts } from "@/hooks/use-call-outs";
 import { CALLOUT_HISTORY } from "@/lib/data";
 import { QueryLoading, QueryError } from "@/components/QueryState";
@@ -22,6 +28,22 @@ export default function CallOutsView() {
   const [rangeView, setRangeView] = useState<"week" | "8weeks">("week");
   const { data: weekCallOuts, isLoading, error, refetch } = useCallOuts();
 
+  const { addSystemMessage } = usePegasusContext();
+  const { speak, isPlaying } = useElevenLabs();
+
+  const handleCallout = useCallback(
+    (event: CalloutEvent) => {
+      addSystemMessage(event.messageText, "danger", event.time);
+      speak(event.voiceText);
+    },
+    [addSystemMessage, speak],
+  );
+
+  const calloutSim = useCalloutSimulation({
+    onCallout: handleCallout,
+    speed: 6,
+  });
+
   if (isLoading) {
     return <QueryLoading message="Loading call-outs..." />;
   }
@@ -40,26 +62,35 @@ export default function CallOutsView() {
           <StatCard label="Armed Call-Outs" value={0} />
           <StatCard label="Est. Cost Impact" value="$0" />
         </div>
-        <p className="text-center text-sm text-muted-foreground py-8">No call-outs recorded.</p>
+        <p className="text-center text-sm text-muted-foreground py-8">
+          No call-outs recorded.
+        </p>
       </div>
     );
   }
 
   const callOuts = rangeView === "week" ? weekCallOuts : CALLOUT_HISTORY;
 
-  const filtered = dayFilter === "All" ? callOuts : callOuts.filter((c) => c.day === dayFilter);
+  const filtered =
+    dayFilter === "All"
+      ? callOuts
+      : callOuts.filter((c) => c.day === dayFilter);
   const resolvedWithFill = callOuts.filter((c) => c.fill != null);
   const avgFill =
     resolvedWithFill.length > 0
       ? Math.round(
-          resolvedWithFill.reduce((a, c) => a + (c.fill ?? 0), 0) / resolvedWithFill.length,
+          resolvedWithFill.reduce((a, c) => a + (c.fill ?? 0), 0) /
+            resolvedWithFill.length,
         )
       : 0;
   const unresolvedCount = callOuts.filter((c) => !c.resolved).length;
   const armedCount = callOuts.filter((c) => c.armed).length;
   const totalCost = callOuts.reduce((sum, co) => sum + calloutCost(co), 0);
 
-  const maxBar = Math.max(...DAYS.map((d) => callOuts.filter((c) => c.day === d).length), 1);
+  const maxBar = Math.max(
+    ...DAYS.map((d) => callOuts.filter((c) => c.day === d).length),
+    1,
+  );
 
   return (
     <div className="space-y-6">
@@ -95,13 +126,74 @@ export default function CallOutsView() {
         </button>
       </div>
 
+      {/* Pre-shift simulation */}
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={calloutSim.isRunning ? calloutSim.reset : calloutSim.start}
+          variant={calloutSim.isRunning ? "destructive" : "default"}
+          size="sm"
+          className="gap-2"
+        >
+          <Play className="h-3.5 w-3.5" />
+          {calloutSim.isRunning ? "Stop Pre-Shift Sim" : "Start Pre-Shift Sim"}
+        </Button>
+        {calloutSim.isRunning && (
+          <span className="text-xs text-muted-foreground">
+            {calloutSim.completedEvents.length} of 4 callouts
+          </span>
+        )}
+      </div>
+
+      {/* Live callout cards */}
+      {calloutSim.completedEvents.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Pre-Shift Callouts (Live)
+          </p>
+          {calloutSim.completedEvents.map((event) => (
+            <div
+              key={event.guardId}
+              className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3"
+            >
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {event.siteName}
+                    </span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {event.time}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {event.guardName} — {event.reason}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => speak(event.voiceText)}
+                disabled={isPlaying}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40"
+                title="Replay voice"
+              >
+                <Volume2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="Total Call-Outs" value={callOuts.length} />
         <StatCard label="Avg Fill Time" value={`${avgFill}m`} />
         <StatCard label="Unresolved" value={unresolvedCount} />
         <StatCard label="Armed Call-Outs" value={armedCount} />
-        <StatCard label="Est. Cost Impact" value={`$${totalCost.toLocaleString()}`} />
+        <StatCard
+          label="Est. Cost Impact"
+          value={`$${totalCost.toLocaleString()}`}
+        />
       </div>
 
       {/* Response time comparison */}
@@ -143,7 +235,10 @@ export default function CallOutsView() {
                 onClick={() => setDayFilter(d === dayFilter ? "All" : d)}
                 className="flex flex-1 flex-col items-center gap-1"
               >
-                <div className="relative w-full flex items-end justify-center" style={{ height: 96 }}>
+                <div
+                  className="relative w-full flex items-end justify-center"
+                  style={{ height: 96 }}
+                >
                   <div
                     className={cn(
                       "w-full max-w-8 rounded-t transition-all",
@@ -153,7 +248,10 @@ export default function CallOutsView() {
                           ? "bg-warning/40"
                           : "bg-secondary",
                     )}
-                    style={{ height: `${(cnt / maxBar) * 100}%`, minHeight: cnt > 0 ? 8 : 0 }}
+                    style={{
+                      height: `${(cnt / maxBar) * 100}%`,
+                      minHeight: cnt > 0 ? 8 : 0,
+                    }}
                   />
                 </div>
                 <span
@@ -220,7 +318,9 @@ export default function CallOutsView() {
                 )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{co.site}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {co.site}
+                    </span>
                     {co.armed && (
                       <Badge
                         variant="outline"
@@ -229,7 +329,9 @@ export default function CallOutsView() {
                         ARMED
                       </Badge>
                     )}
-                    <span className="font-mono text-[11px] text-muted-foreground">${cost}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      ${cost}
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {co.day} {co.time} · {co.guard} called out
