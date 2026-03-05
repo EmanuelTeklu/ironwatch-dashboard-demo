@@ -13,6 +13,7 @@ import {
 } from "@/components/pegasus/ActiveThreadPanel";
 import { OperationsFeed } from "@/components/pegasus/OperationsFeed";
 import { PhoneEngagement } from "@/components/PhoneEngagement";
+import { SuggestionButtons } from "@/components/pegasus/SuggestionButtons";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,6 +39,7 @@ export default function PegasusFullView() {
     streamingThinking,
     sendMessage,
     simulation,
+    suggestions,
   } = usePegasusContext();
 
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -86,6 +88,14 @@ export default function PegasusFullView() {
             streamingThinking={streamingThinking}
             onSendMessage={sendMessage}
             onRenameThread={(title) => renameThread(activeThread.id, title)}
+            suggestions={
+              <SuggestionButtons
+                phase={simulation.phase}
+                siteStatuses={simulation.siteStatuses}
+                isStreaming={isStreaming}
+                onSend={sendMessage}
+              />
+            }
           />
         ) : (
           <EmptyState onStart={handleCreateThread} />

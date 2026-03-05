@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { PegasusFeed } from "@/components/PegasusFeed";
+import { SuggestionButtons } from "@/components/pegasus/SuggestionButtons";
 import { usePegasusContext } from "@/contexts/PegasusContext";
 import { useLocation } from "react-router-dom";
 import {
@@ -163,6 +164,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     sendMessage,
     simulation,
     setViewContext,
+    suggestions,
   } = usePegasusContext();
 
   useEffect(() => {
@@ -276,6 +278,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className="flex-1 rounded-none border-0"
                   placeholder={pegasusPlaceholder}
                   contextLabel={pegasusContextLabel}
+                  suggestions={
+                    <SuggestionButtons
+                      phase={simulation.phase}
+                      siteStatuses={simulation.siteStatuses}
+                      isStreaming={isStreaming}
+                      onSend={sendMessage}
+                    />
+                  }
                 />
               </aside>
             )}

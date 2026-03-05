@@ -24,6 +24,8 @@ import type {
 } from "@/lib/types";
 import type { SiteSimStatus } from "@/lib/simulation";
 import type { PegasusThread } from "@/lib/thread-types";
+import type { Suggestion } from "@/components/pegasus/SuggestionButtons";
+import { computeSuggestions } from "@/components/pegasus/SuggestionButtons";
 
 // ---------------------------------------------------------------------------
 // Simulation state exposed via context
@@ -77,6 +79,9 @@ interface PegasusContextValue {
   // View context
   readonly viewContext: string;
   readonly setViewContext: (viewContext: string) => void;
+
+  // Suggestions
+  readonly suggestions: readonly Suggestion[];
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +158,12 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
     setDemoConfigState(config);
   }, []);
 
+  // Compute contextual suggestions based on phase + site statuses
+  const suggestions = useMemo(
+    () => computeSuggestions(simulation.phase, simulation.siteStatuses),
+    [simulation.phase, simulation.siteStatuses],
+  );
+
   const value: PegasusContextValue = useMemo(
     () => ({
       // Thread CRUD
@@ -177,6 +188,9 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
       // View context
       viewContext,
       setViewContext,
+
+      // Suggestions
+      suggestions,
     }),
     [
       threadManager.threads,
@@ -191,6 +205,7 @@ export function PegasusProvider({ children }: { children: React.ReactNode }) {
       demoConfig,
       setDemoConfig,
       viewContext,
+      suggestions,
     ],
   );
 

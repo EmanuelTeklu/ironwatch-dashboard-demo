@@ -1476,9 +1476,9 @@ export const TONIGHT_SCHEDULE: ScheduleEntry[] = [
 // The live feed handles real-time details; Pegasus is the thinking layer.
 
 export const SIM_TIMELINE: SimEvent[] = [
-  // --- Pre-shift (16:00-20:59) ---
+  // --- Pre-shift (19:00-20:59) ---
   {
-    time: "16:00",
+    time: "19:00",
     type: "shift-start",
     data: {
       message:
@@ -1486,7 +1486,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
   {
-    time: "16:30",
+    time: "19:15",
     type: "confirmation-reply",
     guardId: 2017,
     data: {
@@ -1496,7 +1496,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
   {
-    time: "16:45",
+    time: "19:30",
     type: "pattern-flag",
     guardId: 2005,
     siteId: 1022,
@@ -1508,7 +1508,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
   {
-    time: "17:05",
+    time: "19:45",
     type: "cascade-reply",
     siteId: 1022,
     guardId: 2001,
@@ -1538,7 +1538,7 @@ export const SIM_TIMELINE: SimEvent[] = [
     guardId: 2001,
     data: {
       message:
-        "Courtland Park covered. Pre-staged 3 hours ago. This is the fastest proactive fill this quarter.",
+        "Courtland Park covered. Pre-staged 1 hour ago. This is the fastest proactive fill this quarter.",
       fillMinutes: 1,
     },
   },
@@ -1579,6 +1579,16 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
 
+  // --- 10 PM hourly summary ---
+  {
+    time: "22:00",
+    type: "hourly-summary",
+    data: {
+      message:
+        "Hey — 10 PM check-in. All 24 sites covered. Al Dossary was 4 min late again at Randolph Towers. No callouts this hour. Scan compliance at 96%.",
+    },
+  },
+
   // --- First mid-shift callout ---
   {
     time: "22:47",
@@ -1603,6 +1613,16 @@ export const SIM_TIMELINE: SimEvent[] = [
       fillMinutes: 3,
     },
   },
+
+  // --- 11 PM hourly summary ---
+  {
+    time: "23:00",
+    type: "hourly-summary",
+    data: {
+      message:
+        "11 PM update. 23 of 24 sites green — Teklu's still en route to Clarendon Gate after the Reyes callout. Should be checked in by 23:15. One callout so far, filled in 3 minutes.",
+    },
+  },
   {
     time: "23:15",
     type: "therms-checkin",
@@ -1613,13 +1633,23 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
 
-  // --- Quiet period ---
+  // --- Midnight hourly summary ---
   {
     time: "00:00",
-    type: "all-clear",
+    type: "hourly-summary",
     data: {
       message:
-        "Midnight check: 24/24 sites covered. All 4 rovers active. No open issues.",
+        "Midnight check. 24 of 24 covered — all green. Scan compliance at 94%. Quiet night so far, just the one Reyes callout. All 4 rovers active.",
+    },
+  },
+
+  // --- 1 AM hourly summary ---
+  {
+    time: "01:00",
+    type: "hourly-summary",
+    data: {
+      message:
+        "1 AM check-in. Still 24/24 covered. Patrol completion looking solid across the board except Al Dossary at Randolph — he's at 78%. I'd keep an eye on that one.",
     },
   },
 
@@ -1657,13 +1687,33 @@ export const SIM_TIMELINE: SimEvent[] = [
     },
   },
 
-  // --- Late night quiet ---
+  // --- 2 AM hourly summary ---
   {
-    time: "03:00",
-    type: "all-clear",
+    time: "02:00",
+    type: "hourly-summary",
     data: {
       message:
-        "03:00 check: 24/24 sites covered. 3 callouts tonight, all resolved. Average fill time: 4 minutes.",
+        "2 AM check. 24/24 covered. Two callouts tonight — both resolved. Reyes pulled double duty covering Wildwood after the Farmer emergency. Fill times holding at 4 min avg.",
+    },
+  },
+
+  // --- 3 AM hourly summary ---
+  {
+    time: "03:00",
+    type: "hourly-summary",
+    data: {
+      message:
+        "3 AM — all quiet. 24/24 sites covered, 3 callouts total, all resolved. Average fill time: 4 minutes. Compliance at 92%. We're in good shape for the home stretch.",
+    },
+  },
+
+  // --- 4 AM hourly summary ---
+  {
+    time: "04:00",
+    type: "hourly-summary",
+    data: {
+      message:
+        "4 AM check-in. Almost done. 24/24 still covered. No new callouts since Farmer at 01:15. Patrol rates look good everywhere except Randolph Towers — Al Dossary at 82%. I'd flag that for the morning debrief.",
     },
   },
   {

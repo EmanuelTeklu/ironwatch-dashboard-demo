@@ -2,7 +2,7 @@
 // ActiveThreadPanel — main chat area for the active Pegasus thread
 // ---------------------------------------------------------------------------
 
-import { useState, useCallback, type KeyboardEvent } from "react";
+import React, { useState, useCallback, type KeyboardEvent } from "react";
 import { Pencil, Check, X } from "lucide-react";
 import { PegasusFeed } from "@/components/PegasusFeed";
 import type { PegasusMessage } from "@/lib/types";
@@ -18,6 +18,8 @@ interface ActiveThreadPanelProps {
   readonly streamingThinking?: string;
   readonly onSendMessage: (content: string) => void;
   readonly onRenameThread: (title: string) => void;
+  /** Optional suggestion buttons rendered above the chat input */
+  readonly suggestions?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +145,7 @@ export function ActiveThreadPanel({
   streamingThinking,
   onSendMessage,
   onRenameThread,
+  suggestions,
 }: ActiveThreadPanelProps) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -160,6 +163,7 @@ export function ActiveThreadPanel({
         className="flex-1 rounded-none border-0"
         placeholder="Message Pegasus..."
         hideHeader
+        suggestions={suggestions}
       />
     </div>
   );

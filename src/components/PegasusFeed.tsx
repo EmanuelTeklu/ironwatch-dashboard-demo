@@ -46,6 +46,8 @@ interface PegasusFeedProps {
   readonly contextLabel?: string;
   /** When true, hides the top "Pegasus" header bar (e.g. when embedded in a panel that already has its own title) */
   readonly hideHeader?: boolean;
+  /** Optional suggestion buttons rendered above the input bar */
+  readonly suggestions?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,6 +246,7 @@ export function PegasusFeed({
   placeholder,
   contextLabel,
   hideHeader = false,
+  suggestions,
 }: PegasusFeedProps) {
   const [input, setInput] = useState("");
   const [userScrolledUp, setUserScrolledUp] = useState(false);
@@ -380,6 +383,9 @@ export function PegasusFeed({
       <AnimatePresence>
         {userScrolledUp && <ScrollToBottomButton onClick={scrollToBottom} />}
       </AnimatePresence>
+
+      {/* Suggestion buttons (hidden during streaming) */}
+      {suggestions}
 
       {/* Input bar */}
       <div className="flex items-center gap-2 border-t border-border/60 px-3.5 py-3">

@@ -16,19 +16,19 @@ interface DefaultThreadDef {
 
 const DEFAULT_THREAD_DEFS: readonly DefaultThreadDef[] = [
   {
-    title: "How many called out tonight?",
+    title: "Tonight's callout situation",
     seedMessage:
-      "Give me a quick summary of tonight's callouts so far. How many guards called out, which sites were affected, and are they all covered?",
+      "Hey Pegasus, what's the callout situation tonight? Who called out, which sites got hit, and are we covered everywhere?",
   },
   {
-    title: "Security concerns this shift",
+    title: "Anything I should worry about?",
     seedMessage:
-      "Are there any security concerns I should be aware of this shift? Flag any armed sites with issues, pattern alerts, or guards with reliability flags.",
+      "Anything I should be worried about this shift? Armed sites, pattern flags, unreliable guards — give me the honest rundown.",
   },
   {
-    title: "Staffing coverage overview",
+    title: "How's our coverage looking?",
     seedMessage:
-      "What does my staffing coverage look like right now? How many sites are confirmed, how many are still pending, and do I have enough backup in the pool if someone else calls out?",
+      "How's our staffing looking right now? Who's confirmed, who's still pending, and do we have enough bench if another callout comes in?",
   },
 ];
 

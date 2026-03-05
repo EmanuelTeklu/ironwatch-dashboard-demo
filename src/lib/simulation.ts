@@ -17,6 +17,11 @@ export interface SiteSimStatus {
   readonly patrolsCompleted: number;
   readonly status: "green" | "yellow" | "red";
   readonly coveredBy: string | null;
+  readonly calloutActive: boolean;
+  readonly calloutReason: string | null;
+  readonly guardResponse: string | null;
+  readonly fillTimeMinutes: number | null;
+  readonly escalatedToManager: boolean;
 }
 
 export interface SimulationState {
@@ -108,6 +113,8 @@ function messageTypeForEvent(eventType: SimEvent["type"]): PegasusMessageType {
       return "success";
     case "night-summary":
       return "info";
+    case "hourly-summary":
+      return "info";
     default:
       return "info";
   }
@@ -128,8 +135,8 @@ function refineCascadeReplyType(event: SimEvent): PegasusMessageType {
 
 function phaseForTime(simTime: string): string {
   const minutes = parseSimTime(simTime);
-  if (minutes < 16 * 60) {
-    // Before 16:00 on the next day (after midnight)
+  if (minutes < 19 * 60) {
+    // Before 19:00 on the next day (after midnight)
     if (minutes < 5 * 60) return "late-night";
     return "shift-end";
   }
@@ -150,6 +157,11 @@ function createDefaultSiteStatus(siteId: number): SiteSimStatus {
     patrolsCompleted: 0,
     status: "yellow",
     coveredBy: null,
+    calloutActive: false,
+    calloutReason: null,
+    guardResponse: null,
+    fillTimeMinutes: null,
+    escalatedToManager: false,
   };
 }
 
@@ -192,11 +204,34 @@ function processSiteEffects(
       break;
     }
     case "callout-received": {
+      const reason =
+        typeof event.data.reason === "string"
+          ? (event.data.reason as string)
+          : typeof event.data.message === "string"
+            ? (event.data.message as string)
+            : null;
       next.set(
         siteId,
         updateSiteStatus(current, {
           status: "red",
           coveredBy: null,
+          calloutActive: true,
+          calloutReason: reason,
+          guardResponse: null,
+          fillTimeMinutes: null,
+        }),
+      );
+      break;
+    }
+    case "cascade-reply": {
+      const response =
+        typeof event.data.message === "string"
+          ? (event.data.message as string)
+          : null;
+      next.set(
+        siteId,
+        updateSiteStatus(current, {
+          guardResponse: response,
         }),
       );
       break;
@@ -206,11 +241,17 @@ function processSiteEffects(
         typeof event.data.message === "string"
           ? extractGuardName(event.data.message as string)
           : null;
+      const fillTime =
+        typeof event.data.fillMinutes === "number"
+          ? (event.data.fillMinutes as number)
+          : null;
       next.set(
         siteId,
         updateSiteStatus(current, {
           status: "green",
           coveredBy,
+          calloutActive: false,
+          fillTimeMinutes: fillTime,
         }),
       );
       break;

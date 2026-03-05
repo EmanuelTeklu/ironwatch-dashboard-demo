@@ -6,47 +6,59 @@ import { useSchedule } from "@/hooks/use-schedule";
 import { useRovers } from "@/hooks/use-rovers";
 import { useThermsScans } from "@/hooks/use-therms-scan";
 import { QueryLoading, QueryError } from "@/components/QueryState";
-import { StatCard } from "@/components/StatCard";
 import { cn } from "@/lib/utils";
 import { RoverStrip } from "@/components/board/RoverStrip";
-import { GuardCard } from "@/components/board/GuardCard";
-import { GuardDetailPanel } from "@/components/board/GuardDetailPanel";
+import { SiteCard } from "@/components/board/SiteCard";
+import { SiteDetailPanel } from "@/components/board/SiteDetailPanel";
 import { ScanComplianceSummary } from "@/components/board/ScanComplianceSummary";
-import type { Site, Guard, ScheduleEntry, Rover } from "@/lib/types";
+import { OperationalMetricsBar } from "@/components/board/OperationalMetricsBar";
+import type {
+  Site,
+  Guard,
+  ScheduleEntry,
+  Rover,
+  SiteBoardCard,
+  SiteBoardStatus,
+} from "@/lib/types";
+import type { SiteSimStatus } from "@/lib/simulation";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type BoardFilter = "all" | "armed" | "at-risk" | "overdue";
-
-interface BoardRow {
-  readonly site: Site;
-  readonly guard: Guard | null;
-  readonly schedule: ScheduleEntry | null;
-  readonly confirmed: boolean;
-  readonly checkedIn: boolean;
-  readonly covered: boolean;
-}
+type BoardFilter = "all" | "armed" | "at-risk" | "callouts";
 
 // ---------------------------------------------------------------------------
 // Helpers (pure functions)
 // ---------------------------------------------------------------------------
 
-function buildBoardRows(
+const STATUS_PRIORITY: Record<SiteBoardStatus, number> = {
+  callout: 0,
+  uncovered: 1,
+  unconfirmed: 2,
+  "late-checkin": 3,
+  confirmed: 4,
+};
+
+function deriveBoardStatus(
+  guard: Guard | null,
+  confirmed: boolean,
+  checkedIn: boolean,
+  simStatus: SiteSimStatus | undefined,
+): SiteBoardStatus {
+  if (simStatus?.calloutActive) return "callout";
+  if (!guard) return "uncovered";
+  if (!confirmed) return "unconfirmed";
+  if (simStatus?.status === "yellow" && !checkedIn) return "late-checkin";
+  return "confirmed";
+}
+
+function buildSiteBoardCards(
   sites: readonly Site[],
   guards: readonly Guard[],
   schedule: readonly ScheduleEntry[],
-  siteStatuses?: ReadonlyMap<
-    number,
-    {
-      guardCheckedIn: boolean;
-      status: string;
-      coveredBy: string | null;
-      connectTeamsConfirmed: boolean;
-    }
-  >,
-): readonly BoardRow[] {
+  siteStatuses?: ReadonlyMap<number, SiteSimStatus>,
+): readonly SiteBoardCard[] {
   const guardMap = new Map(guards.map((g) => [g.id, g]));
   const scheduleMap = new Map(schedule.map((s) => [s.siteId, s]));
 
@@ -57,52 +69,45 @@ function buildBoardRows(
     const confirmed =
       simStatus?.connectTeamsConfirmed ?? entry?.connectTeamsConfirmed ?? false;
     const checkedIn = simStatus?.guardCheckedIn ?? false;
-    const covered = guard !== null;
+    const status = deriveBoardStatus(guard, confirmed, checkedIn, simStatus);
 
-    return { site, guard, schedule: entry, confirmed, checkedIn, covered };
+    return {
+      site,
+      guard,
+      confirmed,
+      checkedIn,
+      status,
+      calloutActive: simStatus?.calloutActive ?? false,
+      calloutReason: simStatus?.calloutReason ?? null,
+      guardResponse: simStatus?.guardResponse ?? null,
+      fillTime: simStatus?.fillTimeMinutes ?? null,
+      replacementGuard: simStatus?.coveredBy ?? null,
+    };
   });
 }
 
-function getRowStatus(
-  row: BoardRow,
-): "confirmed" | "unconfirmed" | "uncovered" {
-  if (!row.covered) return "uncovered";
-  if (row.confirmed) return "confirmed";
-  return "unconfirmed";
-}
-
-function filterRows(
-  rows: readonly BoardRow[],
+function filterCards(
+  cards: readonly SiteBoardCard[],
   filter: BoardFilter,
-  overdueGuardIds: ReadonlySet<number>,
-): readonly BoardRow[] {
+): readonly SiteBoardCard[] {
   switch (filter) {
     case "armed":
-      return rows.filter((r) => r.site.armed);
+      return cards.filter((c) => c.site.armed);
     case "at-risk":
-      return rows.filter((r) => !r.confirmed || !r.covered);
-    case "overdue":
-      return rows.filter(
-        (r) => r.guard !== null && overdueGuardIds.has(r.guard.id),
-      );
+      return cards.filter((c) => c.status !== "confirmed");
+    case "callouts":
+      return cards.filter((c) => c.calloutActive);
     default:
-      return rows;
+      return cards;
   }
 }
 
-function sortRows(rows: readonly BoardRow[]): readonly BoardRow[] {
-  const priority: Record<string, number> = {
-    uncovered: 0,
-    unconfirmed: 1,
-    confirmed: 2,
-  };
-  return [...rows].sort(
-    (a, b) =>
-      (priority[getRowStatus(a)] ?? 2) - (priority[getRowStatus(b)] ?? 2),
+function sortCards(cards: readonly SiteBoardCard[]): readonly SiteBoardCard[] {
+  return [...cards].sort(
+    (a, b) => (STATUS_PRIORITY[a.status] ?? 4) - (STATUS_PRIORITY[b.status] ?? 4),
   );
 }
 
-/** Extract unique guard IDs from the schedule. */
 function extractGuardIds(schedule: readonly ScheduleEntry[]): readonly number[] {
   const seen = new Set<number>();
   const ids: number[] = [];
@@ -115,22 +120,6 @@ function extractGuardIds(schedule: readonly ScheduleEntry[]): readonly number[] 
   return ids;
 }
 
-/** Build a map from guardId -> site for quick lookup. */
-function buildGuardSiteMap(
-  schedule: readonly ScheduleEntry[],
-  sites: readonly Site[],
-): ReadonlyMap<number, Site> {
-  const siteMap = new Map(sites.map((s) => [s.id, s]));
-  const result = new Map<number, Site>();
-  for (const entry of schedule) {
-    const site = siteMap.get(entry.siteId);
-    if (site) {
-      result.set(entry.guardId, site);
-    }
-  }
-  return result;
-}
-
 // ---------------------------------------------------------------------------
 // Filter pills
 // ---------------------------------------------------------------------------
@@ -138,29 +127,24 @@ function buildGuardSiteMap(
 interface FilterPillsProps {
   readonly filter: BoardFilter;
   readonly onFilterChange: (f: BoardFilter) => void;
-  readonly atRiskCount: number;
-  readonly armedCount: number;
-  readonly overdueCount: number;
-  readonly totalCount: number;
+  readonly counts: {
+    readonly total: number;
+    readonly armed: number;
+    readonly atRisk: number;
+    readonly callouts: number;
+  };
 }
 
-function FilterPills({
-  filter,
-  onFilterChange,
-  atRiskCount,
-  armedCount,
-  overdueCount,
-  totalCount,
-}: FilterPillsProps) {
+function FilterPills({ filter, onFilterChange, counts }: FilterPillsProps) {
   const pills: readonly {
     id: BoardFilter;
     label: string;
     variant?: "destructive";
   }[] = [
-    { id: "all", label: `All ${totalCount}` },
-    { id: "armed", label: `Armed ${armedCount}` },
-    { id: "at-risk", label: `At Risk ${atRiskCount}`, variant: "destructive" },
-    { id: "overdue", label: `Overdue ${overdueCount}`, variant: "destructive" },
+    { id: "all", label: `All Sites ${counts.total}` },
+    { id: "armed", label: `Armed ${counts.armed}` },
+    { id: "at-risk", label: `At Risk ${counts.atRisk}`, variant: "destructive" },
+    { id: "callouts", label: `Callouts ${counts.callouts}`, variant: "destructive" },
   ];
 
   return (
@@ -220,12 +204,10 @@ export default function TonightsBoardView() {
     refetch: refetchRovers,
   } = useRovers();
 
-  // Loading state
   if (sitesLoading || guardsLoading || scheduleLoading || roversLoading) {
     return <QueryLoading message="Loading tonight's board..." />;
   }
 
-  // Error state
   const firstError = sitesError ?? guardsError ?? scheduleError ?? roversError;
   if (firstError) {
     return (
@@ -241,7 +223,6 @@ export default function TonightsBoardView() {
     );
   }
 
-  // No data
   if (!sites || !guards || !schedule || !rovers) {
     return <QueryError message="No data available" />;
   }
@@ -281,8 +262,8 @@ function TonightsBoardContent({
 }: TonightsBoardContentProps) {
   const { simulation } = usePegasusContext();
 
-  // Detail panel state
-  const [selectedGuardId, setSelectedGuardId] = useState<number | null>(null);
+  // Detail panel state — tracks selected site ID
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
 
   // Extract unique guard IDs for THERMS simulation
   const guardIds = useMemo(() => extractGuardIds(schedule), [schedule]);
@@ -295,99 +276,67 @@ function TonightsBoardContent({
     if (!isRunning) {
       start();
     }
-    // Only start once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Build board rows
-  const boardRows = useMemo(
-    () => buildBoardRows(sites, guards, schedule, simulation.siteStatuses),
+  // Build site board cards
+  const boardCards = useMemo(
+    () => buildSiteBoardCards(sites, guards, schedule, simulation.siteStatuses),
     [sites, guards, schedule, simulation.siteStatuses],
   );
 
-  // Guard -> site mapping
-  const guardSiteMap = useMemo(
-    () => buildGuardSiteMap(schedule, sites),
-    [schedule, sites],
-  );
+  // Guard -> scanState lookup via schedule
+  const guardScanMap = useMemo(() => {
+    const scheduleMap = new Map(schedule.map((s) => [s.siteId, s]));
+    const result = new Map<number, number>(); // siteId -> guardId
+    for (const entry of scheduleMap.values()) {
+      result.set(entry.siteId, entry.guardId);
+    }
+    return result;
+  }, [schedule]);
 
   // Computed counts
-  const confirmedCount = useMemo(
-    () => boardRows.filter((r) => r.confirmed).length,
-    [boardRows],
+  const counts = useMemo(() => {
+    const atRisk = boardCards.filter((c) => c.status !== "confirmed").length;
+    const armed = boardCards.filter((c) => c.site.armed).length;
+    const callouts = boardCards.filter((c) => c.calloutActive).length;
+    return { total: boardCards.length, armed, atRisk, callouts };
+  }, [boardCards]);
+
+  // Filtered + sorted cards
+  const displayCards = useMemo(
+    () => sortCards(filterCards(boardCards, filter)),
+    [boardCards, filter],
   );
 
-  const checkedInCount = useMemo(
-    () => boardRows.filter((r) => r.checkedIn).length,
-    [boardRows],
+  // Selected card for detail panel
+  const selectedCard = useMemo(
+    () =>
+      selectedSiteId !== null
+        ? boardCards.find((c) => c.site.id === selectedSiteId) ?? null
+        : null,
+    [boardCards, selectedSiteId],
   );
 
-  const atRiskCount = useMemo(
-    () => boardRows.filter((r) => !r.confirmed || !r.covered).length,
-    [boardRows],
-  );
-
-  const armedCount = useMemo(
-    () => boardRows.filter((r) => r.site.armed).length,
-    [boardRows],
-  );
-
-  // Overdue guard IDs (scan status === "overdue")
-  const overdueGuardIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const [guardId, state] of scanStates) {
-      if (state.status === "overdue") {
-        ids.add(guardId);
-      }
-    }
-    return ids;
-  }, [scanStates]);
-
-  const overdueCount = overdueGuardIds.size;
-
-  // Filtered + sorted rows
-  const filteredRows = useMemo(
-    () => sortRows(filterRows(boardRows, filter, overdueGuardIds)),
-    [boardRows, filter, overdueGuardIds],
-  );
-
-  // Selected guard data for detail panel
-  const selectedGuard = useMemo(
-    () => (selectedGuardId !== null
-      ? guards.find((g) => g.id === selectedGuardId) ?? null
-      : null),
-    [guards, selectedGuardId],
-  );
-
-  const selectedSite = useMemo(
-    () => (selectedGuardId !== null
-      ? guardSiteMap.get(selectedGuardId) ?? null
-      : null),
-    [guardSiteMap, selectedGuardId],
-  );
-
-  const selectedScanState = selectedGuardId !== null
-    ? scanStates.get(selectedGuardId)
-    : undefined;
+  const selectedScanState = useMemo(() => {
+    if (selectedSiteId === null) return undefined;
+    const guardId = guardScanMap.get(selectedSiteId);
+    return guardId != null ? scanStates.get(guardId) : undefined;
+  }, [selectedSiteId, guardScanMap, scanStates]);
 
   // Handlers
-  const handleCardClick = useCallback((guardId: number) => {
-    setSelectedGuardId(guardId);
+  const handleCardClick = useCallback((siteId: number) => {
+    setSelectedSiteId(siteId);
   }, []);
 
   const handleCloseDetail = useCallback(() => {
-    setSelectedGuardId(null);
+    setSelectedSiteId(null);
   }, []);
 
   return (
     <div className="space-y-6">
-      {/* Stats row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total Sites" value={sites.length} />
-        <StatCard label="Confirmed (CT)" value={confirmedCount} />
-        <StatCard label="Checked In" value={checkedInCount} />
-        <StatCard label="At Risk" value={atRiskCount} />
-      </div>
+      {/* Operational metrics bar */}
+      <OperationalMetricsBar cards={boardCards} scanStates={scanStates} />
 
       {/* THERMS scan compliance summary */}
       <ScanComplianceSummary
@@ -399,49 +348,43 @@ function TonightsBoardContent({
       <FilterPills
         filter={filter}
         onFilterChange={onFilterChange}
-        atRiskCount={atRiskCount}
-        armedCount={armedCount}
-        overdueCount={overdueCount}
-        totalCount={sites.length}
+        counts={counts}
       />
 
       <RoverStrip rovers={rovers} />
 
-      {/* Guard card grid */}
+      {/* Site card grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredRows.map((row) => {
-          if (!row.guard) return null;
-
-          const guardId = row.guard.id;
-          const scanState = scanStates.get(guardId);
+        {displayCards.map((card) => {
+          const guardId = guardScanMap.get(card.site.id);
+          const scanState =
+            guardId != null ? scanStates.get(guardId) : undefined;
 
           return (
-            <GuardCard
-              key={row.site.id}
-              guard={row.guard}
+            <SiteCard
+              key={card.site.id}
+              card={card}
               scanState={scanState}
-              siteName={row.site.name}
-              onClick={() => handleCardClick(guardId)}
+              onClick={() => handleCardClick(card.site.id)}
             />
           );
         })}
       </div>
 
       {/* Empty state */}
-      {filteredRows.length === 0 && (
+      {displayCards.length === 0 && (
         <div className="flex items-center justify-center py-12">
           <p className="text-sm text-muted-foreground">
-            No guards match the current filter.
+            No sites match the current filter.
           </p>
         </div>
       )}
 
-      {/* Guard detail slide-out panel */}
-      <GuardDetailPanel
-        guard={selectedGuard}
-        site={selectedSite}
+      {/* Site detail slide-out panel */}
+      <SiteDetailPanel
+        card={selectedCard}
         scanState={selectedScanState}
-        open={selectedGuardId !== null}
+        open={selectedSiteId !== null}
         onClose={handleCloseDetail}
       />
     </div>

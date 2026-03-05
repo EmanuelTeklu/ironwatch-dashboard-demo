@@ -100,7 +100,8 @@ export type SimEventType =
   | "site-covered"
   | "pattern-flag"
   | "all-clear"
-  | "night-summary";
+  | "night-summary"
+  | "hourly-summary";
 
 export interface SimEvent {
   time: string;
@@ -165,6 +166,28 @@ export interface ScheduleEntry {
   siteId: number;
   guardId: number;
   connectTeamsConfirmed: boolean;
+}
+
+// --- Site Board (Tonight's Board) -------------------------------------------
+
+export type SiteBoardStatus =
+  | "callout"
+  | "uncovered"
+  | "unconfirmed"
+  | "late-checkin"
+  | "confirmed";
+
+export interface SiteBoardCard {
+  readonly site: Site;
+  readonly guard: Guard | null;
+  readonly confirmed: boolean;
+  readonly checkedIn: boolean;
+  readonly status: SiteBoardStatus;
+  readonly calloutActive: boolean;
+  readonly calloutReason: string | null;
+  readonly guardResponse: string | null;
+  readonly fillTime: number | null;
+  readonly replacementGuard: string | null;
 }
 
 // --- Navigation -------------------------------------------------------------
