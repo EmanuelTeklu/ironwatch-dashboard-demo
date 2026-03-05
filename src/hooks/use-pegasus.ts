@@ -12,6 +12,7 @@ interface UsePegasusOptions {
 interface UsePegasusReturn {
   messages: PegasusMessage[];
   isStreaming: boolean;
+  streamingThinking: string;
   addSystemMessage: (
     content: string,
     type?: PegasusMessageType,
@@ -47,6 +48,8 @@ function nowTimestamp(): string {
 interface SseChunk {
   done: boolean;
   text?: string;
+  thinking?: string;
+  thinkingStart?: boolean;
   error?: string;
 }
 
@@ -58,9 +61,19 @@ function parseSseLine(line: string): SseChunk | null {
   if (payload === "[DONE]") return { done: true };
 
   try {
-    const parsed = JSON.parse(payload) as { text?: string; error?: string };
+    const parsed = JSON.parse(payload) as {
+      text?: string;
+      thinking?: string;
+      thinkingStart?: boolean;
+      error?: string;
+    };
     if (parsed.error) return { done: false, error: parsed.error };
-    return { done: false, text: parsed.text };
+    return {
+      done: false,
+      text: parsed.text,
+      thinking: parsed.thinking,
+      thinkingStart: parsed.thinkingStart,
+    };
   } catch {
     return null;
   }
@@ -75,6 +88,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
 
   const [messages, setMessages] = useState<PegasusMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingThinking, setStreamingThinking] = useState("");
 
   // Full conversation history for Claude context (role + content pairs)
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
@@ -137,8 +151,10 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
       };
       setMessages((prev) => [...prev, aiMsg]);
       setIsStreaming(true);
+      setStreamingThinking("");
 
       let fullResponse = "";
+      let thinkingAccumulator = "";
 
       try {
         const res = await fetch("/api/pegasus", {
@@ -179,6 +195,12 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
             if (chunk.done) break;
             if (chunk.error) throw new Error(chunk.error);
 
+            // Accumulate thinking content
+            if (chunk.thinking) {
+              thinkingAccumulator += chunk.thinking;
+              setStreamingThinking(thinkingAccumulator);
+            }
+
             if (chunk.text) {
               fullResponse += chunk.text;
               const updatedContent = fullResponse;
@@ -198,16 +220,22 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         // Process any remaining buffer content
         if (buffer.trim()) {
           const chunk = parseSseLine(buffer);
-          if (chunk && !chunk.done && chunk.text) {
-            fullResponse += chunk.text;
-            const updatedContent = fullResponse;
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === aiMsgId
-                  ? { ...msg, content: updatedContent }
-                  : msg,
-              ),
-            );
+          if (chunk && !chunk.done) {
+            if (chunk.thinking) {
+              thinkingAccumulator += chunk.thinking;
+              setStreamingThinking(thinkingAccumulator);
+            }
+            if (chunk.text) {
+              fullResponse += chunk.text;
+              const updatedContent = fullResponse;
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiMsgId
+                    ? { ...msg, content: updatedContent }
+                    : msg,
+                ),
+              );
+            }
           }
         }
 
@@ -236,6 +264,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
         }
       } finally {
         setIsStreaming(false);
+        setStreamingThinking("");
       }
     },
     [context],
@@ -252,6 +281,7 @@ export function usePegasus(options: UsePegasusOptions = {}): UsePegasusReturn {
   return {
     messages,
     isStreaming,
+    streamingThinking,
     addSystemMessage,
     sendMessage,
     clearMessages,

@@ -35,9 +35,12 @@ Operational context:
 
 When given operational data, reason over it naturally. Be specific — cite guard names, GRS scores, visit counts, hours remaining. Never be generic.`;
 
+const THINKING_BUDGET_TOKENS = 4096;
+const MAX_TOKENS = 8192;
+
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse
+  res: VercelResponse,
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -60,8 +63,12 @@ export default async function handler(
   try {
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
+      max_tokens: MAX_TOKENS,
       system: systemPrompt,
+      thinking: {
+        type: "enabled",
+        budget_tokens: THINKING_BUDGET_TOKENS,
+      },
       messages: messages.map((m: { role: string; content: string }) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
@@ -69,18 +76,39 @@ export default async function handler(
     });
 
     for await (const event of stream) {
+      if (event.type === "content_block_start") {
+        const block = event.content_block;
+        if (block.type === "thinking") {
+          res.write(
+            `data: ${JSON.stringify({ thinkingStart: true })}\n\n`,
+          );
+        }
+      }
+
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "thinking_delta"
+      ) {
+        res.write(
+          `data: ${JSON.stringify({ thinking: event.delta.thinking })}\n\n`,
+        );
+      }
+
       if (
         event.type === "content_block_delta" &&
         event.delta.type === "text_delta"
       ) {
-        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ text: event.delta.text })}\n\n`,
+        );
       }
     }
 
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
     res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
     res.end();
   }

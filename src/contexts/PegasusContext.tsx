@@ -45,6 +45,7 @@ interface SimulationState {
 interface PegasusContextValue {
   readonly messages: PegasusMessage[];
   readonly isStreaming: boolean;
+  readonly streamingThinking: string;
   readonly sendMessage: (content: string) => Promise<void>;
   readonly addSystemMessage: (
     content: string,
