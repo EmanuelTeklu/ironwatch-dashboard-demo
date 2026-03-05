@@ -1,8 +1,8 @@
-import { supabase } from "./supabase";
+import { supabase, isSupabaseConfigured } from "./supabase";
+import { SITES, GUARDS, CALLOUTS } from "./data";
 import type { Site, Guard, CallOut } from "./types";
 import type { ShiftRow, CascadeEventRow } from "./database.types";
 
-// Error wrapper for consistent error handling
 class ApiError extends Error {
   constructor(
     message: string,
@@ -20,7 +20,9 @@ function handleError(error: { message: string; code?: string }): never {
 // ---------- Sites ----------
 
 export async function getSites(): Promise<Site[]> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return SITES;
+
+  const { data, error } = await supabase!
     .from("sites")
     .select("id, name, addr, armed, tier")
     .order("name");
@@ -30,7 +32,9 @@ export async function getSites(): Promise<Site[]> {
 }
 
 export async function getSiteById(id: number): Promise<Site | null> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return SITES.find((s) => s.id === id) ?? null;
+
+  const { data, error } = await supabase!
     .from("sites")
     .select("id, name, addr, armed, tier")
     .eq("id", id)
@@ -44,7 +48,13 @@ export async function updateSite(
   id: number,
   updates: Partial<Pick<Site, "name" | "addr" | "armed" | "tier">>
 ): Promise<Site> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) {
+    const site = SITES.find((s) => s.id === id);
+    if (!site) throw new ApiError("Site not found");
+    return { ...site, ...updates };
+  }
+
+  const { data, error } = await supabase!
     .from("sites")
     .update(updates)
     .eq("id", id)
@@ -57,16 +67,18 @@ export async function updateSite(
 
 // ---------- Guards ----------
 
-export async function getGuards(): Promise<Guard[]> {
-  const { data, error } = await supabase
-    .from("guards")
-    .select("id, name, role, armed, grs, hrs, max, last_out, status")
-    .order("grs", { ascending: false });
-
-  if (error) handleError(error);
-
-  // Map snake_case DB column to camelCase TS field
-  return data.map((g) => ({
+function mapGuardRow(g: {
+  id: number;
+  name: string;
+  role: string;
+  armed: boolean;
+  grs: number;
+  hrs: number;
+  max: number;
+  last_out: string | null;
+  status: string;
+}): Guard {
+  return {
     id: g.id,
     name: g.name,
     role: g.role,
@@ -75,12 +87,26 @@ export async function getGuards(): Promise<Guard[]> {
     hrs: g.hrs,
     max: g.max,
     lastOut: g.last_out,
-    status: g.status,
-  }));
+    status: g.status as Guard["status"],
+  };
+}
+
+export async function getGuards(): Promise<Guard[]> {
+  if (!isSupabaseConfigured) return GUARDS;
+
+  const { data, error } = await supabase!
+    .from("guards")
+    .select("id, name, role, armed, grs, hrs, max, last_out, status")
+    .order("grs", { ascending: false });
+
+  if (error) handleError(error);
+  return data.map(mapGuardRow);
 }
 
 export async function getGuardById(id: number): Promise<Guard | null> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return GUARDS.find((g) => g.id === id) ?? null;
+
+  const { data, error } = await supabase!
     .from("guards")
     .select("id, name, role, armed, grs, hrs, max, last_out, status")
     .eq("id", id)
@@ -88,18 +114,7 @@ export async function getGuardById(id: number): Promise<Guard | null> {
 
   if (error) handleError(error);
   if (!data) return null;
-
-  return {
-    id: data.id,
-    name: data.name,
-    role: data.role,
-    armed: data.armed,
-    grs: data.grs,
-    hrs: data.hrs,
-    max: data.max,
-    lastOut: data.last_out,
-    status: data.status,
-  };
+  return mapGuardRow(data);
 }
 
 export async function updateGuard(
@@ -115,7 +130,13 @@ export async function updateGuard(
     status: Guard["status"];
   }>
 ): Promise<Guard> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) {
+    const guard = GUARDS.find((g) => g.id === id);
+    if (!guard) throw new ApiError("Guard not found");
+    return { ...guard, ...updates } as Guard;
+  }
+
+  const { data, error } = await supabase!
     .from("guards")
     .update(updates)
     .eq("id", id)
@@ -123,24 +144,15 @@ export async function updateGuard(
     .single();
 
   if (error) handleError(error);
-
-  return {
-    id: data.id,
-    name: data.name,
-    role: data.role,
-    armed: data.armed,
-    grs: data.grs,
-    hrs: data.hrs,
-    max: data.max,
-    lastOut: data.last_out,
-    status: data.status,
-  };
+  return mapGuardRow(data);
 }
 
 // ---------- Call-Outs ----------
 
 export async function getCallOuts(): Promise<CallOut[]> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return CALLOUTS;
+
+  const { data, error } = await supabase!
     .from("call_outs")
     .select("day, site, guard, time, armed, resolved, fill, by")
     .order("created_at", { ascending: true });
@@ -152,7 +164,11 @@ export async function getCallOuts(): Promise<CallOut[]> {
 export async function createCallOut(
   callOut: Omit<CallOut, "resolved" | "fill" | "by">
 ): Promise<CallOut> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) {
+    return { ...callOut, resolved: false, fill: null, by: null };
+  }
+
+  const { data, error } = await supabase!
     .from("call_outs")
     .insert({
       day: callOut.day,
@@ -176,7 +192,9 @@ export async function resolveCallOut(
   fill: number,
   by: string
 ): Promise<void> {
-  const { error } = await supabase
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase!
     .from("call_outs")
     .update({ resolved: true, fill, by })
     .eq("id", id);
@@ -187,7 +205,9 @@ export async function resolveCallOut(
 // ---------- Shifts ----------
 
 export async function getShifts(): Promise<ShiftRow[]> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabase!
     .from("shifts")
     .select("*")
     .order("start_time", { ascending: false });
@@ -197,7 +217,9 @@ export async function getShifts(): Promise<ShiftRow[]> {
 }
 
 export async function getShiftsBySite(siteId: number): Promise<ShiftRow[]> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabase!
     .from("shifts")
     .select("*")
     .eq("site_id", siteId)
@@ -210,7 +232,9 @@ export async function getShiftsBySite(siteId: number): Promise<ShiftRow[]> {
 export async function createShift(
   shift: Pick<ShiftRow, "site_id" | "guard_id" | "start_time">
 ): Promise<ShiftRow> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) throw new ApiError("Supabase not configured");
+
+  const { data, error } = await supabase!
     .from("shifts")
     .insert({
       site_id: shift.site_id,
@@ -230,7 +254,9 @@ export async function createShift(
 export async function getCascadeEvents(
   callOutId: number
 ): Promise<CascadeEventRow[]> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabase!
     .from("cascade_events")
     .select("*")
     .eq("call_out_id", callOutId)
@@ -243,7 +269,9 @@ export async function getCascadeEvents(
 export async function createCascadeEvent(
   event: Pick<CascadeEventRow, "call_out_id" | "guard_id" | "contacted_at">
 ): Promise<CascadeEventRow> {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured) throw new ApiError("Supabase not configured");
+
+  const { data, error } = await supabase!
     .from("cascade_events")
     .insert({
       call_out_id: event.call_out_id,

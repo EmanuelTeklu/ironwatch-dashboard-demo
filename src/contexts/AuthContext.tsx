@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface AuthState {
   readonly user: User | null;
@@ -25,9 +25,15 @@ interface AuthContextValue extends AuthState {
     password: string
   ) => Promise<{ error: AuthError | null }>;
   readonly signOut: () => Promise<void>;
+  readonly isDemo: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const DEMO_USER = {
+  id: "demo",
+  email: "demo@ironwatch.local",
+} as User;
 
 const INITIAL_STATE: AuthState = {
   user: null,
@@ -39,8 +45,12 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const [state, setState] = useState<AuthState>(INITIAL_STATE);
 
   useEffect(() => {
-    // Get the initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!isSupabaseConfigured) {
+      setState({ user: DEMO_USER, session: null, loading: false });
+      return;
+    }
+
+    supabase!.auth.getSession().then(({ data: { session } }) => {
       setState({
         user: session?.user ?? null,
         session,
@@ -48,10 +58,9 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
       });
     });
 
-    // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase!.auth.onAuthStateChange((_event, session) => {
       setState({
         user: session?.user ?? null,
         session,
@@ -63,7 +72,11 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    if (!isSupabaseConfigured) {
+      setState({ user: DEMO_USER, session: null, loading: false });
+      return { error: null };
+    }
+    const { error } = await supabase!.auth.signInWithPassword({
       email,
       password,
     });
@@ -71,12 +84,14 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+    if (!isSupabaseConfigured) return { error: null };
+    const { error } = await supabase!.auth.signUp({ email, password });
     return { error };
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    if (!isSupabaseConfigured) return;
+    await supabase!.auth.signOut();
   }, []);
 
   const value: AuthContextValue = {
@@ -84,6 +99,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    isDemo: !isSupabaseConfigured,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

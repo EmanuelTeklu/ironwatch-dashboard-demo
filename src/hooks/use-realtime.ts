@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 type TableName = "sites" | "guards" | "call_outs" | "shifts";
@@ -24,6 +24,8 @@ export function useRealtimeSubscriptions() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
     const channel = supabase
       .channel("dashboard-realtime")
       .on(
@@ -31,26 +33,26 @@ export function useRealtimeSubscriptions() {
         { event: "*", schema: "public", table: "sites" },
         (_payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           queryClient.invalidateQueries({ queryKey: ["sites"] });
-        }
+        },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "call_outs" },
         (_payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           queryClient.invalidateQueries({ queryKey: ["callOuts"] });
-        }
+        },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shifts" },
         (_payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           queryClient.invalidateQueries({ queryKey: ["shifts"] });
-        }
+        },
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase!.removeChannel(channel);
     };
   }, [queryClient]);
 }
