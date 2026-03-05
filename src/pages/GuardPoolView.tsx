@@ -26,7 +26,9 @@ export default function GuardPoolView() {
           <StatCard label="At Capacity" value={0} />
           <StatCard label="On Duty" value={0} />
         </div>
-        <p className="text-center text-sm text-muted-foreground py-8">No guards in the pool.</p>
+        <p className="text-center text-sm text-muted-foreground py-8">
+          No guards in the pool.
+        </p>
       </div>
     );
   }
@@ -53,7 +55,10 @@ export default function GuardPoolView() {
         {/* Header */}
         <div className="grid grid-cols-[40px_1fr_120px_60px_120px_90px] gap-2 border-b border-border px-4 py-2.5">
           {["#", "Guard", "Role", "GRS", "Hours", "Status"].map((h) => (
-            <p key={h} className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p
+              key={h}
+              className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            >
               {h}
             </p>
           ))}
@@ -68,15 +73,23 @@ export default function GuardPoolView() {
             <p className="font-mono text-xs text-muted-foreground">{i + 1}</p>
             <div>
               <p className="text-sm font-medium text-foreground">{g.name}</p>
-              <p className="font-mono text-[10px] text-muted-foreground">#{g.id}</p>
+              <p className="font-mono text-[10px] text-muted-foreground">
+                #{g.id}
+              </p>
             </div>
             <div>
               {g.armed ? (
-                <Badge variant="outline" className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0">
+                <Badge
+                  variant="outline"
+                  className="border-armed/30 bg-armed/10 text-armed text-[10px] px-1.5 py-0"
+                >
                   <Shield className="mr-1 h-3 w-3" /> Armed
                 </Badge>
               ) : g.role === "Supervisor" ? (
-                <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[10px] px-1.5 py-0">
+                <Badge
+                  variant="outline"
+                  className="border-primary/30 bg-primary/10 text-primary text-[10px] px-1.5 py-0"
+                >
                   Supervisor
                 </Badge>
               ) : (
@@ -89,10 +102,10 @@ export default function GuardPoolView() {
                 g.grs >= 90
                   ? "text-success"
                   : g.grs >= 80
-                  ? "text-info"
-                  : g.grs >= 70
-                  ? "text-warning"
-                  : "text-muted-foreground"
+                    ? "text-info"
+                    : g.grs >= 70
+                      ? "text-warning"
+                      : "text-muted-foreground",
               )}
             >
               {g.grs}
@@ -101,25 +114,23 @@ export default function GuardPoolView() {
               <p className="font-mono text-[11px] text-muted-foreground">
                 {g.hrs}/{g.max}
               </p>
-              <Progress
-                value={(g.hrs / g.max) * 100}
-                className="h-1.5"
-              />
+              <Progress value={(g.hrs / g.max) * 100} className="h-1.5" />
             </div>
             <div>
               <span
                 className={cn(
                   "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
                   g.status === "on-duty" && "bg-success/10 text-success",
-                  g.status === "off-duty" && "bg-secondary text-muted-foreground",
-                  g.status === "training" && "bg-info/10 text-info"
+                  g.status === "off-duty" &&
+                    "bg-secondary text-muted-foreground",
+                  g.status === "training" && "bg-info/10 text-info",
                 )}
               >
                 {g.status === "on-duty"
                   ? "On Duty"
                   : g.status === "training"
-                  ? "Training"
-                  : "Off Duty"}
+                    ? "Training"
+                    : "Off Duty"}
               </span>
             </div>
           </div>
@@ -133,11 +144,26 @@ export default function GuardPoolView() {
           <p className="text-sm font-semibold text-foreground">Cascade Rules</p>
         </div>
         <ul className="space-y-1.5 text-xs text-muted-foreground">
-          <li><span className="text-foreground font-medium">Armed filter</span> — armed sites cascade only to armed-certified guards</li>
-          <li><span className="text-foreground font-medium">Rest</span> — 8hr minimum since last clock-out</li>
-          <li><span className="text-foreground font-medium">Overtime</span> — 40hr weekly cap, no assignments beyond</li>
-          <li><span className="text-foreground font-medium">Rank</span> — GRS score -> hours under cap -> preference match</li>
-          <li><span className="text-foreground font-medium">Urgency</span> — time uncovered x tier weight (A = 3x, B = 2x)</li>
+          <li>
+            <span className="text-foreground font-medium">Armed filter</span> —
+            armed sites cascade only to armed-certified guards
+          </li>
+          <li>
+            <span className="text-foreground font-medium">Rest</span> — 8hr
+            minimum since last clock-out
+          </li>
+          <li>
+            <span className="text-foreground font-medium">Overtime</span> — 40hr
+            weekly cap, no assignments beyond
+          </li>
+          <li>
+            <span className="text-foreground font-medium">Rank</span> — GRS
+            score &rarr; hours under cap &rarr; preference match
+          </li>
+          <li>
+            <span className="text-foreground font-medium">Urgency</span> — time
+            uncovered &times; tier weight (A = 3&times;, B = 2&times;)
+          </li>
         </ul>
       </div>
     </div>
