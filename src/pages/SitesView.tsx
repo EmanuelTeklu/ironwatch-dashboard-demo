@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { SITES, GUARDS } from "@/lib/data";
+import { useSites } from "@/hooks/use-sites";
+import { useGuards } from "@/hooks/use-guards";
+import { QueryLoading, QueryError } from "@/components/QueryState";
 import type { SiteRow } from "@/lib/types";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
@@ -9,14 +11,33 @@ type Filter = "all" | "armed" | "alert";
 
 export default function SitesView() {
   const [filter, setFilter] = useState<Filter>("all");
+  const { data: sites, isLoading: sitesLoading, error: sitesError, refetch: refetchSites } = useSites();
+  const { data: guards, isLoading: guardsLoading, error: guardsError, refetch: refetchGuards } = useGuards();
 
-  const siteRows: SiteRow[] = SITES.map((s, i) => {
-    const g = GUARDS[i % GUARDS.length];
+  if (sitesLoading || guardsLoading) {
+    return <QueryLoading message="Loading sites..." />;
+  }
+
+  if (sitesError || guardsError) {
+    return (
+      <QueryError
+        message={sitesError?.message ?? guardsError?.message ?? "Unknown error"}
+        onRetry={() => { refetchSites(); refetchGuards(); }}
+      />
+    );
+  }
+
+  if (!sites || !guards) {
+    return <QueryError message="No data available" />;
+  }
+
+  const siteRows: SiteRow[] = sites.map((s, i) => {
+    const g = guards[i % guards.length];
     let st: SiteRow["st"] = "covered";
     if (i === 5) st = "confirming";
     return {
       ...s,
-      guardName: g.name,
+      guardName: g?.name ?? null,
       st,
       clockIn: st === "covered" ? `${22 + (i % 3)}:${String((i * 7) % 60).padStart(2, "0")}` : null,
     };
@@ -34,11 +55,11 @@ export default function SitesView() {
     });
 
   const coveredCount = siteRows.filter((s) => s.st === "covered").length;
-  const armedCount = SITES.filter((s) => s.armed).length;
+  const armedCount = sites.filter((s) => s.armed).length;
   const alertCount = siteRows.filter((s) => s.st !== "covered").length;
 
   const pills: { id: Filter; label: string; variant?: "destructive" }[] = [
-    { id: "all", label: `All ${SITES.length}` },
+    { id: "all", label: `All ${sites.length}` },
     { id: "armed", label: "Armed" },
     { id: "alert", label: "Alerts", variant: "destructive" },
   ];
@@ -47,7 +68,7 @@ export default function SitesView() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total Sites" value={SITES.length} />
+        <StatCard label="Total Sites" value={sites.length} />
         <StatCard label="Covered" value={coveredCount} />
         <StatCard label="Armed" value={armedCount} />
         <StatCard label="Alerts" value={alertCount} />

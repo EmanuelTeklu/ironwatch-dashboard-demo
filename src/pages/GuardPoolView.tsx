@@ -1,4 +1,5 @@
-import { GUARDS } from "@/lib/data";
+import { useGuards } from "@/hooks/use-guards";
+import { QueryLoading, QueryError } from "@/components/QueryState";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -6,10 +7,34 @@ import { cn } from "@/lib/utils";
 import { Shield, Info } from "lucide-react";
 
 export default function GuardPoolView() {
-  const activeGuards = GUARDS.filter((g) => g.status !== "inactive");
-  const armedCount = GUARDS.filter((g) => g.armed).length;
-  const cappedCount = GUARDS.filter((g) => g.hrs >= g.max).length;
-  const onDutyCount = GUARDS.filter((g) => g.status === "on-duty").length;
+  const { data: guards, isLoading, error, refetch } = useGuards();
+
+  if (isLoading) {
+    return <QueryLoading message="Loading guard pool..." />;
+  }
+
+  if (error) {
+    return <QueryError message={error.message} onRetry={refetch} />;
+  }
+
+  if (!guards || guards.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Total Guards" value={0} />
+          <StatCard label="Armed" value={0} />
+          <StatCard label="At Capacity" value={0} />
+          <StatCard label="On Duty" value={0} />
+        </div>
+        <p className="text-center text-sm text-muted-foreground py-8">No guards in the pool.</p>
+      </div>
+    );
+  }
+
+  const activeGuards = guards.filter((g) => g.status !== "inactive");
+  const armedCount = guards.filter((g) => g.armed).length;
+  const cappedCount = guards.filter((g) => g.hrs >= g.max).length;
+  const onDutyCount = guards.filter((g) => g.status === "on-duty").length;
 
   const sorted = [...activeGuards].sort((a, b) => b.grs - a.grs);
 
@@ -111,8 +136,8 @@ export default function GuardPoolView() {
           <li><span className="text-foreground font-medium">Armed filter</span> — armed sites cascade only to armed-certified guards</li>
           <li><span className="text-foreground font-medium">Rest</span> — 8hr minimum since last clock-out</li>
           <li><span className="text-foreground font-medium">Overtime</span> — 40hr weekly cap, no assignments beyond</li>
-          <li><span className="text-foreground font-medium">Rank</span> — GRS score → hours under cap → preference match</li>
-          <li><span className="text-foreground font-medium">Urgency</span> — time uncovered × tier weight (A = 3×, B = 2×)</li>
+          <li><span className="text-foreground font-medium">Rank</span> — GRS score -> hours under cap -> preference match</li>
+          <li><span className="text-foreground font-medium">Urgency</span> — time uncovered x tier weight (A = 3x, B = 2x)</li>
         </ul>
       </div>
     </div>

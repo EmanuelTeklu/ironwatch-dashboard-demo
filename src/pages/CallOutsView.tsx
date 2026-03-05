@@ -1,28 +1,57 @@
 import { useState } from "react";
-import { CALLOUTS, DAYS } from "@/lib/data";
+import { useCallOuts } from "@/hooks/use-call-outs";
+import { QueryLoading, QueryError } from "@/components/QueryState";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 export default function CallOutsView() {
   const [dayFilter, setDayFilter] = useState("All");
+  const { data: callOuts, isLoading, error, refetch } = useCallOuts();
 
-  const filtered = dayFilter === "All" ? CALLOUTS : CALLOUTS.filter((c) => c.day === dayFilter);
-  const avgFill = Math.round(
-    CALLOUTS.filter((c) => c.fill).reduce((a, c) => a + (c.fill || 0), 0) /
-      CALLOUTS.filter((c) => c.fill).length
-  );
-  const unresolvedCount = CALLOUTS.filter((c) => !c.resolved).length;
-  const armedCount = CALLOUTS.filter((c) => c.armed).length;
+  if (isLoading) {
+    return <QueryLoading message="Loading call-outs..." />;
+  }
 
-  const maxBar = Math.max(...DAYS.map((d) => CALLOUTS.filter((c) => c.day === d).length), 1);
+  if (error) {
+    return <QueryError message={error.message} onRetry={refetch} />;
+  }
+
+  if (!callOuts || callOuts.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Total Call-Outs" value={0} />
+          <StatCard label="Avg Fill Time" value="--" />
+          <StatCard label="Unresolved" value={0} />
+          <StatCard label="Armed Call-Outs" value={0} />
+        </div>
+        <p className="text-center text-sm text-muted-foreground py-8">No call-outs recorded.</p>
+      </div>
+    );
+  }
+
+  const filtered = dayFilter === "All" ? callOuts : callOuts.filter((c) => c.day === dayFilter);
+  const resolvedWithFill = callOuts.filter((c) => c.fill != null);
+  const avgFill =
+    resolvedWithFill.length > 0
+      ? Math.round(
+          resolvedWithFill.reduce((a, c) => a + (c.fill ?? 0), 0) / resolvedWithFill.length
+        )
+      : 0;
+  const unresolvedCount = callOuts.filter((c) => !c.resolved).length;
+  const armedCount = callOuts.filter((c) => c.armed).length;
+
+  const maxBar = Math.max(...DAYS.map((d) => callOuts.filter((c) => c.day === d).length), 1);
 
   return (
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total Call-Outs" value={CALLOUTS.length} />
+        <StatCard label="Total Call-Outs" value={callOuts.length} />
         <StatCard label="Avg Fill Time" value={`${avgFill}m`} />
         <StatCard label="Unresolved" value={unresolvedCount} />
         <StatCard label="Armed Call-Outs" value={armedCount} />
@@ -35,7 +64,7 @@ export default function CallOutsView() {
         </p>
         <div className="flex items-end gap-3 h-32">
           {DAYS.map((d) => {
-            const cnt = CALLOUTS.filter((c) => c.day === d).length;
+            const cnt = callOuts.filter((c) => c.day === d).length;
             const isWknd = ["Fri", "Sat", "Sun"].includes(d);
             const active = dayFilter === d;
             return (
@@ -85,7 +114,7 @@ export default function CallOutsView() {
           All
         </button>
         {DAYS.map((d) => {
-          const cnt = CALLOUTS.filter((c) => c.day === d).length;
+          const cnt = callOuts.filter((c) => c.day === d).length;
           if (cnt === 0) return null;
           return (
             <button
